@@ -37,8 +37,15 @@
 
 @layer base {
   html {
+    scrollbar-width: none; /* barre de défilement invisible, le scroll reste actif */
+    -ms-overflow-style: none;
     background: var(--color-ink);
     color-scheme: dark;
+  }
+  html::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
   }
   body {
     margin: 0;

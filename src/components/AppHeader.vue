@@ -4,6 +4,8 @@ import { RouterLink, useRoute } from 'vue-router'
 import gsap from 'gsap'
 import Logo from './Logo.vue'
 import Ring from './bits/Ring.vue'
+import SearchOverlay from './SearchOverlay.vue'
+import NotificationsPanel from './NotificationsPanel.vue'
 import { prefersReduced } from '../composables/motion'
 
 const route = useRoute()
@@ -15,6 +17,18 @@ const links = [
   { to: '/parametres', label: 'Paramètres' },
 ]
 
+const searchOpen = ref(false)
+const notifOpen = ref(false)
+const unread = ref(true)
+const notifBox = ref(null)
+// Ctrl/Cmd + K ouvre la recherche ; un clic en dehors ferme les notifications.
+function onGlobalKey(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') (e.preventDefault(), (searchOpen.value = !searchOpen.value))
+  else if (e.key === 'Escape') notifOpen.value = false
+}
+function onDocClick(e) {
+  if (notifOpen.value && !notifBox.value?.contains(e.target)) notifOpen.value = false
+}
 const header = ref(null)
 const nav = ref(null)
 const pill = ref(null)
@@ -34,6 +48,8 @@ function movePill(animate = true) {
 }
 
 onMounted(async () => {
+  window.addEventListener('keydown', onGlobalKey)
+  document.addEventListener('mousedown', onDocClick)
   tick()
   clock = setInterval(tick, 15000)
   await nextTick()
@@ -47,10 +63,15 @@ onMounted(async () => {
   if (!prefersReduced()) gsap.from(header.value.children, { y: -24, opacity: 0, duration: 0.8, stagger: 0.1, ease: 'power3.out' })
 })
 onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onGlobalKey)
+  document.removeEventListener('mousedown', onDocClick)
   clearInterval(clock)
   ro?.disconnect()
 })
-watch(() => route.path, () => movePill(true))
+watch(() => route.path, () => {
+  movePill(true)
+  notifOpen.value = false
+})
 </script>
 
 <template>
@@ -71,16 +92,20 @@ watch(() => route.path, () => movePill(true))
 
     <div class="flex items-center gap-2.5">
       <span class="mr-1.5 text-sm font-semibold tabular-nums text-fog">{{ time }}</span>
-      <button type="button" aria-label="Rechercher" class="glass-btn flex size-11 items-center justify-center rounded-full text-white transition-transform hover:scale-110">
+      <button type="button" aria-label="Rechercher (Ctrl+K)" aria-haspopup="dialog" class="glass-btn flex size-11 items-center justify-center rounded-full text-white transition-transform hover:scale-110" @click="searchOpen = true">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.5" y2="16.5" /></svg>
       </button>
-      <button type="button" aria-label="Notifications" class="glass-btn relative flex size-11 items-center justify-center rounded-full text-white transition-transform hover:scale-110">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
-        <span class="absolute right-2.5 top-[9px] size-2 animate-pulse rounded-full bg-hot" />
-      </button>
+      <div ref="notifBox" class="relative">
+        <button type="button" aria-label="Notifications" aria-haspopup="dialog" :aria-expanded="notifOpen" class="glass-btn relative flex size-11 items-center justify-center rounded-full text-white transition-transform hover:scale-110" @click="notifOpen = !notifOpen">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+          <span v-if="unread" class="absolute right-2.5 top-[9px] size-2 animate-pulse rounded-full bg-hot" />
+        </button>
+        <NotificationsPanel :open="notifOpen" :unread="unread" @close="notifOpen = false" @read="unread = false" />
+      </div>
       <RouterLink to="/parametres" aria-label="Mon profil" class="no-underline transition-transform hover:scale-105">
         <Ring :value="72" :size="48" :thickness="3" inner="var(--color-avatar)"><span class="font-display text-[15px] font-extrabold text-white">H</span></Ring>
       </RouterLink>
     </div>
   </header>
+  <SearchOverlay :open="searchOpen" @close="searchOpen = false" />
 </template>

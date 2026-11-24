@@ -54,7 +54,7 @@ const build = (c) => {
     installed,
     fav,
     tag,
-    trophy: c.ach[0]?.name ?? 'Premier succès',
+    trophy: c.ach[0]?.name ?? 'Aventure en cours',
     moods: moodsOf(c),
     state: !lib ? 'MAGASIN' : installed ? 'INSTALLÉ' : 'CLOUD',
     discount: c.discount,
@@ -154,3 +154,10 @@ export const details = {
   frostline: { studio: 'Coldfront', genre: 'Survie', year: 2025, size: 41, price: '24,99 €', desc: 'Le gel avance. Construis, chauffe, tiens bon. Un survival coopératif dans un monde qui se fige.', tags: ['Survie', 'Coop', 'Construction'], total: 32, got: 1, ach: [['Premier givre', 'Allume ton premier feu', true], ['Cabane chaude', 'Construis un abri', false]] },
   'rust-rivet': { studio: 'Bolt & Nut', genre: 'Construction', year: 2024, size: 22, price: '17,49 €', desc: 'Assemble, soude, rivète. Construis des machines absurdes et fais-les marcher.', tags: ['Construction', 'Chill', 'Créatif'], total: 34, got: 0, ach: [['Premier boulon', 'Assemble ta première machine', false], ['Ça roule', 'Fais avancer un véhicule', false]] },
 }
+
+export const notifications = [
+  { id: 'n1', ini: 'LS', col: '#FF8FB3', text: 'Lina a battu ton record sur Forza Horizon 5', when: 'Il y a 12 min', to: '/jeu/1551360' },
+  { id: 'n2', ini: 'AM', col: '#9FE2BF', text: 'Awa te propose de rejoindre Baldur’s Gate 3', when: 'Il y a 8 min', to: '/amis' },
+  { id: 'n3', ini: 'G', col: '#B6FF3D', text: 'Mise à jour disponible pour Cyberpunk 2077', when: 'Il y a 1 h', to: '/jeu/1091500' },
+  { id: 'n4', ini: 'G', col: '#2BD9FF', text: 'Ghost of Tsushima est dans ta liste de souhaits à prix réduit', when: 'Hier', to: '/jeu/2215430' },
+]

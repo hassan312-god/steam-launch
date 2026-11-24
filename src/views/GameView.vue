@@ -31,6 +31,12 @@ const cur = ref(0)
 const item = computed(() => media.value[cur.value] ?? null)
 const step = (d) => (cur.value = (cur.value + d + media.value.length) % media.value.length)
 
+const clip = computed(() => (prefersReduced() ? null : game.value.movies?.[0] ?? null))
+const videoOn = ref(false)
+let vt
+const onPlaying = () => { clearTimeout(vt); vt = setTimeout(() => (videoOn.value = true), 600) }
+watch(() => game.value.id, () => { clearTimeout(vt); videoOn.value = false })
+
 const root = ref(null)
 let ctx
 function intro() {
@@ -62,8 +68,9 @@ onBeforeUnmount(() => ctx?.revert())
 
 <template>
   <div ref="root" class="relative min-h-screen overflow-hidden bg-ink pt-[var(--header-h,100px)]">
-    <div aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-0 h-[760px] overflow-hidden">
+    <div aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-0 h-[min(860px,100vh)] overflow-hidden">
       <img data-bg :key="game.id" :src="game.wide" alt="" class="size-full object-cover" />
+      <TrailerVideo v-if="clip" :key="clip.hls" ambient :start-at="7" :src="clip.hls" class="absolute inset-0 size-full object-cover transition-opacity duration-[1200ms]" :class="videoOn ? 'opacity-100' : 'opacity-0'" @playing="onPlaying" />
       <div class="absolute inset-0 bg-gradient-to-r from-ink/90 via-ink/40 to-ink/10" />
       <div class="absolute inset-0" style="background: linear-gradient(180deg, rgba(6,6,10,0.7) 0%, rgba(6,6,10,0) 25%, rgba(6,6,10,0.4) 60%, #06060A 100%)" />
     </div>
@@ -132,7 +139,7 @@ onBeforeUnmount(() => ctx?.revert())
         <h2 id="media-h" class="m-0 font-display text-[22px] font-extrabold tracking-[-0.01em]">Vidéos et captures</h2>
         <div class="relative aspect-video w-full overflow-hidden rounded-3xl bg-panel shadow-[0_30px_70px_rgba(0,0,0,0.5)]">
           <div data-stage class="absolute inset-0">
-            <TrailerVideo v-if="item.type === 'video'" :key="item.hls" :src="item.hls" :poster="game.shots[0] || item.thumb" autoplay class="size-full bg-black object-contain" />
+            <TrailerVideo v-if="item.type === 'video'" :key="item.hls" :src="item.hls" :poster="game.shots[0] || item.thumb" class="size-full bg-black object-contain" />
             <img v-else :key="item.full" :src="item.full" :alt="item.name" class="size-full object-cover" />
           </div>
           <template v-if="media.length > 1">
