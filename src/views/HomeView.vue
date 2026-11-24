@@ -9,6 +9,7 @@ import Magnet from '../components/bits/Magnet.vue'
 import ShinyText from '../components/bits/ShinyText.vue'
 import { byId, homeGameIds, moods, weekHours } from '../data/games'
 import { theme } from '../composables/useTheme'
+import TrailerVideo from '../components/TrailerVideo.vue'
 import { prefersReduced } from '../composables/motion'
 
 const all = homeGameIds.map((id) => byId[id])
@@ -16,7 +17,15 @@ const mood = ref('tout')
 const sel = ref(0)
 const games = computed(() => all.filter((g) => mood.value === 'tout' || g.moods.includes(mood.value)))
 const hero = computed(() => games.value[Math.min(sel.value, games.value.length - 1)])
-const scale = computed(() => ({ Compact: 0.85, Confort: 1, Géant: 1.2 })[theme.density] ?? 1)
+const vw = ref(typeof window === 'undefined' ? 1440 : window.innerWidth)
+const onResize = () => (vw.value = window.innerWidth)
+// Les jaquettes grandissent sur les grands écrans (PC 1080p / 1440p) et suivent le réglage de densité.
+const scale = computed(() => ({ Compact: 0.85, Confort: 1, Géant: 1.2 })[theme.density] * (vw.value >= 2200 ? 1.5 : vw.value >= 1700 ? 1.25 : vw.value < 640 ? 0.85 : 1))
+const clip = computed(() => (prefersReduced() ? null : hero.value.movies?.[0] ?? null))
+const videoOn = ref(false)
+let vt
+const onPlaying = () => { clearTimeout(vt); vt = setTimeout(() => (videoOn.value = true), 600) }
+watch(() => hero.value.id, () => { clearTimeout(vt); videoOn.value = false })
 const bestDay = weekHours.indexOf(Math.max(...weekHours))
 const hint = ref(null)
 
@@ -55,6 +64,7 @@ let ctx
 const root = ref(null)
 onMounted(() => {
   window.addEventListener('keydown', onKey)
+  window.addEventListener('resize', onResize)
   if (prefersReduced()) return
   ctx = gsap.context(() => {
     const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
@@ -68,6 +78,7 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)
+  window.removeEventListener('resize', onResize)
   ctx?.revert()
 })
 
@@ -84,14 +95,17 @@ watch(hero, async () => {
     <!-- Fond héros -->
     <div aria-hidden="true" class="absolute inset-0 overflow-hidden">
       <Transition :css="false" appear @enter="heroEnter" @leave="heroLeave">
-        <img :key="hero.id" :src="hero.wide" alt="" class="absolute inset-0 size-full object-cover" />
+        <div :key="hero.id" class="absolute inset-0">
+          <img :src="hero.wide" alt="" class="absolute inset-0 size-full object-cover" />
+          <TrailerVideo v-if="clip" ambient :start-at="7" :src="clip.hls" class="absolute inset-0 size-full object-cover transition-opacity duration-[1200ms]" :class="videoOn ? 'opacity-100' : 'opacity-0'" @playing="onPlaying" />
+        </div>
       </Transition>
     </div>
     <div aria-hidden="true" class="absolute inset-0 bg-gradient-to-r from-ink/85 from-0% via-ink/35 via-45% to-ink/10" />
     <div aria-hidden="true" class="absolute inset-0" style="background: linear-gradient(180deg, rgba(6,6,10,0.7) 0%, rgba(6,6,10,0) 20%, rgba(6,6,10,0) 45%, rgba(6,6,10,0.92) 80%, #06060A 100%)" />
 
     <!-- Bonsoir + humeurs + stats -->
-    <section class="relative flex flex-wrap items-start justify-between gap-6 px-5 pt-3 md:px-12">
+    <section class="relative flex flex-wrap items-start justify-between gap-6 shell pt-3">
       <div class="flex flex-col gap-3.5">
         <span class="eyebrow tracking-[0.2em]">Bonsoir, Hassan</span>
         <BlurText tag="span" text="Envie de quoi ce soir ?" :delay="0.3" class="font-display text-[26px] font-extrabold" />
@@ -102,7 +116,7 @@ watch(hero, async () => {
             type="button"
             data-mood
             :aria-pressed="mood === k"
-            class="h-10 rounded-full border px-4 text-sm font-semibold backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5"
+            class="h-10 rounded-full border px-4 text-sm font-semibold backdrop-blur-md transition-colors duration-300"
             :class="mood === k ? 'border-accent bg-accent text-ink' : 'border-white/15 bg-ink/50 text-white hover:border-white/40'"
             @click="pickMood(k)"
           >{{ label }}</button>
@@ -127,10 +141,10 @@ watch(hero, async () => {
 
     <!-- Héros + rangée de jeux -->
     <section class="relative mt-auto flex flex-col gap-6 pb-8 pt-20">
-      <div class="flex flex-wrap items-end justify-between gap-6 px-5 md:px-12">
-        <div class="flex max-w-[760px] flex-col gap-4">
+      <div class="flex flex-wrap items-end justify-between gap-6 shell">
+        <div class="flex max-w-[min(62vw,1100px)] flex-col gap-4">
           <span data-tag class="self-start rounded-full bg-white/[0.14] px-3 py-1.5 text-xs font-bold tracking-[0.14em] backdrop-blur-md">{{ hero.tag }}</span>
-          <h1 class="m-0 font-display text-[clamp(40px,7vw,76px)] font-black uppercase leading-[0.92] tracking-[-0.03em]">
+          <h1 class="m-0 font-display text-[clamp(36px,5.2vw,96px)] font-black uppercase leading-[0.92] tracking-[-0.03em]">
             <SplitText :text="hero.title" :stagger="0.025" />
           </h1>
           <div class="flex flex-wrap gap-2.5 text-sm">
@@ -156,7 +170,7 @@ watch(hero, async () => {
         </div>
       </div>
 
-      <div class="no-scrollbar flex items-end gap-4 overflow-x-auto px-5 pb-1.5 pt-3.5 md:px-12" role="listbox" aria-label="Jeux" aria-orientation="horizontal">
+      <div class="no-scrollbar flex items-end gap-4 overflow-x-auto shell pb-1.5 pt-3.5" role="listbox" aria-label="Jeux" aria-orientation="horizontal">
         <TransitionGroup :css="false" appear @enter="coverEnter" @leave="coverLeave">
           <button
             v-for="(g, i) in games"
@@ -179,7 +193,7 @@ watch(hero, async () => {
           Tout voir
         </RouterLink>
       </div>
-      <p ref="hint" class="px-5 text-xs text-mute md:px-12">Astuce : utilise les flèches ← → pour parcourir tes jeux.</p>
+      <p ref="hint" class="shell text-xs text-mute">Astuce : utilise les flèches ← → pour parcourir tes jeux.</p>
     </section>
   </main>
 </template>

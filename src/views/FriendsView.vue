@@ -6,7 +6,7 @@ import SplitText from '../components/bits/SplitText.vue'
 import SpotlightCard from '../components/bits/SpotlightCard.vue'
 import Magnet from '../components/bits/Magnet.vue'
 import CountUp from '../components/bits/CountUp.vue'
-import { bySlug, byId, compat, feed, friends } from '../data/games'
+import { byId, compat, feed, friends } from '../data/games'
 import { prefersReduced } from '../composables/motion'
 
 const online = friends.filter((f) => f.online).length
@@ -32,9 +32,9 @@ onBeforeUnmount(() => ctx?.revert())
 
 <template>
   <div ref="root" class="relative min-h-screen overflow-hidden bg-ink pt-[var(--header-h,100px)]">
-    <PageBackdrop :src="byId['neon-drift'].wide" :height="540" />
+    <PageBackdrop :src="byId['1551360'].wide" :height="540" />
 
-    <main class="relative flex flex-col gap-8 px-5 pb-14 pt-2 md:px-12">
+    <main class="relative flex flex-col gap-8 shell pb-14 pt-2">
       <div data-head class="flex flex-wrap items-end justify-between gap-5">
         <div class="flex flex-col gap-2">
           <span class="eyebrow"><CountUp :to="online" :duration="0.8" :delay="0.3" /> amis en ligne</span>
@@ -50,7 +50,7 @@ onBeforeUnmount(() => ctx?.revert())
           <span class="relative size-[88px] transition-transform duration-300 group-hover:scale-110">
             <span :data-live-ring="f.online ? '' : null" class="absolute inset-0 rounded-full" :style="{ background: ring(f) }" />
             <span class="absolute inset-1 flex items-center justify-center rounded-full border-4 border-ink font-display text-xl font-extrabold text-ink" :style="{ background: f.col }">{{ f.ini }}</span>
-            <img v-if="f.playing" :src="bySlug[f.playing].cover" alt="" class="absolute -bottom-1 -right-1 size-8 rounded-[10px] border-[3px] border-ink object-cover" />
+            <img v-if="f.playing" :src="byId[f.playing].cover" alt="" class="absolute -bottom-1 -right-1 size-8 rounded-[10px] border-[3px] border-ink object-cover" />
           </span>
           <span class="text-[13px] font-bold">{{ f.name }}</span>
           <span class="-mt-1.5 text-xs" :class="statusCol(f)">{{ f.status }}</span>
@@ -59,12 +59,12 @@ onBeforeUnmount(() => ctx?.revert())
 
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <SpotlightCard data-tile class="group relative flex min-h-[300px] flex-col justify-end rounded-3xl lg:col-span-2">
-          <img :src="byId['tidebound'].wide" alt="" class="absolute inset-0 size-full object-cover transition-transform duration-[1400ms] group-hover:scale-105" />
+          <img :src="byId['1086940'].wide" alt="" class="absolute inset-0 size-full object-cover transition-transform duration-[1400ms] group-hover:scale-105" />
           <div class="absolute inset-0 bg-gradient-to-r from-ink/90 to-ink/25 to-70%" />
           <div class="relative flex max-w-[520px] flex-col gap-3.5 p-8">
             <span class="flex items-center gap-2 self-start rounded-full border border-white/[0.16] bg-ink/60 px-3 py-1.5 text-xs font-extrabold tracking-[0.12em]"><span data-live-dot class="size-2 rounded-full bg-hot" />EN DIRECT · GROUPE VOCAL</span>
-            <span class="font-display text-[clamp(26px,3.4vw,36px)] font-black leading-none">Awa t’attend sur Tidebound</span>
-            <span class="text-[15px] text-[#D7D8E0]">2 / 4 places · Raid du chapitre 5 · lancé il y a 8 min</span>
+            <span class="font-display text-[clamp(26px,3.4vw,36px)] font-black leading-none">Awa t’attend sur Baldur’s Gate 3</span>
+            <span class="text-[15px] text-[#D7D8E0]">2 / 4 places · Acte 3, Cité de Baldur · lancé il y a 8 min</span>
             <div class="mt-1 flex flex-wrap gap-2.5">
               <button type="button" class="h-[50px] rounded-full bg-accent px-[26px] text-[15px] font-extrabold text-ink transition-transform hover:scale-105">Rejoindre la partie</button>
               <button type="button" class="h-[50px] rounded-full border border-white/20 bg-ink/50 px-[22px] text-[15px] font-semibold text-white transition-colors hover:bg-white/10">Écouter</button>
@@ -90,7 +90,7 @@ onBeforeUnmount(() => ctx?.revert())
         <div v-reveal="{ children: true, stagger: 0.1 }" class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
           <article v-for="e in feed" :key="e.who + e.when" class="card group flex flex-col overflow-hidden">
             <div class="relative h-[140px]">
-              <img :src="bySlug[e.slug].wide" alt="" class="block size-full object-cover transition-transform duration-700 group-hover:scale-110" />
+              <img :src="byId[e.id].wide" alt="" class="block size-full object-cover transition-transform duration-700 group-hover:scale-110" />
               <span class="absolute -bottom-[18px] left-3.5 flex size-10 items-center justify-center rounded-full border-[3px] border-panel text-[13px] font-extrabold text-ink" :style="{ background: e.col }">{{ e.ini }}</span>
             </div>
             <div class="flex flex-col gap-1.5 px-[18px] pb-[18px] pt-[26px]">

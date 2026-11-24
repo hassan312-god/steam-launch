@@ -7,7 +7,7 @@ import SplitText from '../components/bits/SplitText.vue'
 import CountUp from '../components/bits/CountUp.vue'
 import Ring from '../components/bits/Ring.vue'
 import SpotlightCard from '../components/bits/SpotlightCard.vue'
-import { byId, games } from '../data/games'
+import { byId, myGames as games } from '../data/games'
 import { theme } from '../composables/useTheme'
 import { prefersReduced } from '../composables/motion'
 
@@ -19,7 +19,7 @@ const filters = {
   Cloud: (g) => !g.installed,
 }
 const sorts = ['Joué récemment', 'Temps de jeu', 'Progression', 'Nom']
-const hours = (g) => parseInt(g.time, 10)
+const hours = (g) => g.hours
 
 const f = ref('Tout')
 const sort = ref(sorts[0])
@@ -30,6 +30,8 @@ const list = computed(() => {
   if (sort.value === 'Nom') return [...l].sort((a, b) => a.title.localeCompare(b.title, 'fr'))
   return l
 })
+const totalHours = games.reduce((n, g) => n + g.hours, 0)
+const installedCount = games.filter((g) => g.installed).length
 const minCol = computed(() => ({ Compact: 140, Confort: 180, Géant: 240 })[theme.density] ?? 180)
 const badge = (s) => (s === 'INSTALLÉ' ? 'bg-accent' : s === 'CLOUD' ? 'bg-soft' : 'bg-amber')
 
@@ -58,27 +60,27 @@ function leave(el, done) {
 
 <template>
   <div ref="root" class="relative min-h-screen overflow-hidden bg-ink pt-[var(--header-h,100px)]">
-    <PageBackdrop :src="byId['glasswing'].wide" />
+    <PageBackdrop :src="byId['1593500'].wide" />
 
-    <main class="relative flex flex-col gap-8 px-5 pb-14 pt-2 md:px-12">
+    <main class="relative flex flex-col gap-8 shell pb-14 pt-2">
       <div data-head class="flex flex-col gap-2">
         <span class="eyebrow">La collection de Hassan</span>
         <h1 class="page-title m-0"><SplitText text="Bibliothèque" :delay="0.15" /></h1>
       </div>
 
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SpotlightCard data-stat class="card flex flex-col gap-1.5 p-6">
           <span class="text-[13px] text-mute">Temps de jeu total</span>
-          <span class="font-display text-5xl font-black leading-none"><CountUp :to="412" :duration="2" :delay="0.4" /><span class="text-[22px]"> h</span></span>
+          <span class="font-display text-5xl font-black leading-none"><CountUp :to="totalHours" :duration="2" :delay="0.4" /><span class="text-[22px]"> h</span></span>
           <span class="text-[13px] font-semibold text-accent">+14 h cette semaine</span>
         </SpotlightCard>
 
         <div data-stat class="group relative flex min-h-[150px] flex-col justify-end overflow-hidden rounded-3xl">
-          <img :src="byId['saffron-skies'].wide" alt="" class="absolute inset-0 size-full object-cover transition-transform duration-[1200ms] group-hover:scale-110" />
+          <img :src="byId['1245620'].wide" alt="" class="absolute inset-0 size-full object-cover transition-transform duration-[1200ms] group-hover:scale-110" />
           <div class="absolute inset-0 bg-gradient-to-t from-ink/90 to-ink/10 to-80%" />
           <div class="relative flex flex-col gap-0.5 p-5">
-            <span class="text-xs text-[#D7D8E0]">Ton jeu n°1</span>
-            <span class="font-display text-lg font-extrabold">Saffron Skies · 125 h</span>
+            <span class="text-xs text-[#D7D8E0]">Ton jeu le plus joué</span>
+            <span class="font-display text-lg font-extrabold">Elden Ring · 142 h</span>
           </div>
         </div>
 
@@ -93,7 +95,7 @@ function leave(el, done) {
           <div class="flex h-2.5 gap-[3px] overflow-hidden rounded-[5px]" role="img" aria-label="612 Go utilisés sur 1 000">
             <span data-seg class="w-[34%] bg-accent" /><span data-seg class="w-[18%] bg-cyan" /><span data-seg class="w-[9%] bg-hot" /><span class="flex-1 bg-white/[0.12]" />
           </div>
-          <span class="text-xs text-mute">7 jeux installés</span>
+          <span class="text-xs text-mute">{{ installedCount }} jeux installés</span>
         </div>
       </div>
 
@@ -120,7 +122,7 @@ function leave(el, done) {
       <div class="grid gap-x-5 gap-y-[30px]" :style="{ gridTemplateColumns: `repeat(auto-fill, minmax(${minCol}px, 1fr))` }">
         <TransitionGroup :css="false" appear move-class="lib-move" @enter="enter" @leave="leave">
           <RouterLink v-for="(g, i) in list" :key="g.id" :data-i="i" :to="'/jeu/' + g.id" class="group flex flex-col gap-3 text-white no-underline">
-            <div class="relative aspect-[3/4] overflow-hidden rounded-[22px] shadow-[0_18px_40px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:-translate-y-1.5">
+            <div class="relative aspect-[2/3] overflow-hidden rounded-[22px] shadow-[0_18px_40px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:-translate-y-1.5">
               <img :src="g.cover" alt="" class="block size-full object-cover transition-transform duration-700 group-hover:scale-110" :class="g.installed ? '' : 'brightness-[0.8] grayscale-[0.6]'" />
               <span class="absolute left-2.5 top-2.5 rounded-full px-[9px] py-[5px] text-[11px] font-extrabold tracking-[0.06em] text-ink" :class="badge(g.state)">{{ g.state }}</span>
               <span v-if="g.fav" class="absolute right-2.5 top-2.5 flex size-[30px] items-center justify-center rounded-full bg-ink/70">

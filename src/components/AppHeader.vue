@@ -54,7 +54,7 @@ watch(() => route.path, () => movePill(true))
 </script>
 
 <template>
-  <header ref="header" class="absolute inset-x-0 top-0 z-30 flex flex-wrap items-center justify-between gap-5 px-5 py-6 md:px-12">
+  <header ref="header" class="absolute inset-x-0 top-0 z-30 flex flex-wrap items-center justify-between gap-5 shell py-6">
     <RouterLink to="/accueil" aria-label="Accueil G.A" class="no-underline"><Logo /></RouterLink>
 
     <nav ref="nav" class="glass relative flex max-w-full gap-1 overflow-x-auto rounded-full p-[5px] text-sm font-semibold no-scrollbar" aria-label="Navigation principale">

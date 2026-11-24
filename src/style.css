@@ -28,6 +28,13 @@
   --accent: #b6ff3d;
 }
 
+@utility shell {
+  width: 100%;
+  max-width: 1840px;
+  margin-inline: auto;
+  padding-inline: clamp(20px, 3.4vw, 72px);
+}
+
 @layer base {
   html {
     background: var(--color-ink);
