@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 const routes = [
   { path: '/', name: 'loading', component: () => import('./views/LoadingView.vue'), meta: { bare: true } },
   { path: '/accueil', name: 'home', component: () => import('./views/HomeView.vue'), meta: { title: 'Accueil' } },
+  { path: '/jeu/:id', name: 'game', component: () => import('./views/GameView.vue'), meta: { title: 'Jeu' } },
   { path: '/magasin', name: 'store', component: () => import('./views/StoreView.vue'), meta: { title: 'Magasin' } },
   { path: '/bibliotheque', name: 'library', component: () => import('./views/LibraryView.vue'), meta: { title: 'Bibliothèque' } },
   { path: '/amis', name: 'friends', component: () => import('./views/FriendsView.vue'), meta: { title: 'Amis' } },

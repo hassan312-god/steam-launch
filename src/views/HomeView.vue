@@ -152,7 +152,7 @@ watch(hero, async () => {
               </button>
             </span>
           </Magnet>
-          <button type="button" aria-label="Plus d’options" class="size-[60px] rounded-full border border-white/[0.16] bg-ink/50 text-xl font-extrabold text-white transition-colors hover:bg-white/10">···</button>
+          <RouterLink :to="'/jeu/' + hero.id" aria-label="Voir la fiche du jeu" class="flex size-[60px] items-center justify-center rounded-full border border-white/[0.16] bg-ink/50 text-xl font-extrabold text-white no-underline transition-colors hover:bg-white/10">···</RouterLink>
         </div>
       </div>
 
