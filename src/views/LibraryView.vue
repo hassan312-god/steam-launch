@@ -119,7 +119,7 @@ function leave(el, done) {
 
       <div class="grid gap-x-5 gap-y-[30px]" :style="{ gridTemplateColumns: `repeat(auto-fill, minmax(${minCol}px, 1fr))` }">
         <TransitionGroup :css="false" appear move-class="lib-move" @enter="enter" @leave="leave">
-          <RouterLink v-for="(g, i) in list" :key="g.id" :data-i="i" to="/accueil" class="group flex flex-col gap-3 text-white no-underline">
+          <RouterLink v-for="(g, i) in list" :key="g.id" :data-i="i" :to="'/jeu/' + g.id" class="group flex flex-col gap-3 text-white no-underline">
             <div class="relative aspect-[3/4] overflow-hidden rounded-[22px] shadow-[0_18px_40px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:-translate-y-1.5">
               <img :src="g.cover" alt="" class="block size-full object-cover transition-transform duration-700 group-hover:scale-110" :class="g.installed ? '' : 'brightness-[0.8] grayscale-[0.6]'" />
               <span class="absolute left-2.5 top-2.5 rounded-full px-[9px] py-[5px] text-[11px] font-extrabold tracking-[0.06em] text-ink" :class="badge(g.state)">{{ g.state }}</span>

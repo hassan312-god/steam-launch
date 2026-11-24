@@ -45,7 +45,7 @@ onBeforeUnmount(() => ctx?.revert())
 
       <!-- Bento -->
       <div class="grid auto-rows-[210px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SpotlightCard tag="a" href="#" data-tile class="group flex flex-col justify-end rounded-3xl text-white no-underline sm:col-span-2 lg:row-span-2">
+        <SpotlightCard tag="RouterLink" to="/jeu/saffron-skies" data-tile class="group flex flex-col justify-end rounded-3xl text-white no-underline sm:col-span-2 lg:row-span-2">
           <img :src="g('saffron-skies').wide" alt="" class="absolute inset-0 size-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105" />
           <div class="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/20 via-60% to-transparent" />
           <div class="relative flex flex-col gap-3 p-7">
@@ -59,7 +59,7 @@ onBeforeUnmount(() => ctx?.revert())
           </div>
         </SpotlightCard>
 
-        <SpotlightCard tag="a" href="#" data-tile class="group flex flex-col justify-end rounded-3xl text-white no-underline sm:col-span-2">
+        <SpotlightCard tag="RouterLink" to="/jeu/glasswing" data-tile class="group flex flex-col justify-end rounded-3xl text-white no-underline sm:col-span-2">
           <img :src="g('glasswing').wide" alt="" class="absolute inset-0 size-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105" />
           <div class="absolute inset-0 bg-gradient-to-r from-ink/90 to-ink/20 to-70%" />
           <div class="relative flex max-w-[60%] flex-col gap-2 p-6">
@@ -82,7 +82,7 @@ onBeforeUnmount(() => ctx?.revert())
           </RouterLink>
         </SpotlightCard>
 
-        <SpotlightCard tag="a" href="#" data-tile class="group flex flex-col justify-end rounded-3xl text-white no-underline">
+        <SpotlightCard tag="RouterLink" to="/jeu/iron-hollow" data-tile class="group flex flex-col justify-end rounded-3xl text-white no-underline">
           <img :src="g('iron-hollow').wide" alt="" class="absolute inset-0 size-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105" />
           <div class="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/20 via-60% to-transparent" />
           <div class="relative flex flex-col gap-1.5 p-[22px]">
@@ -97,7 +97,7 @@ onBeforeUnmount(() => ctx?.revert())
         <div class="flex items-baseline justify-between gap-4"><h2 id="radar-h" class="m-0 font-display text-[22px] font-extrabold tracking-[-0.01em]">Ton radar</h2><span class="text-sm text-mute">Calculé sur tes 412 h de jeu</span></div>
         <p v-if="!list.length" class="m-0 rounded-3xl border border-dashed border-white/20 p-8 text-mute">Aucun jeu ne correspond à « {{ q }} » dans ton radar.</p>
         <div v-else class="no-scrollbar flex gap-[18px] overflow-x-auto px-1 py-3">
-          <a v-for="(r, i) in list" :key="r.title" href="#" class="flex w-[210px] shrink-0 flex-col gap-3 text-white no-underline">
+          <RouterLink v-for="(r, i) in list" :key="r.title" :to="'/jeu/' + g(r.slug).id" class="flex w-[210px] shrink-0 flex-col gap-3 text-white no-underline">
             <TiltedCard class="h-[280px] overflow-hidden rounded-[22px]">
               <img :src="g(r.slug).cover" alt="" class="block size-full rounded-[22px] object-cover" />
               <div class="absolute right-3 top-3">
@@ -107,7 +107,7 @@ onBeforeUnmount(() => ctx?.revert())
             </TiltedCard>
             <span class="text-[15px] font-bold">{{ r.title }}</span>
             <span class="text-[13px] text-mute">{{ r.why }} · <strong class="text-white">{{ r.price }}</strong></span>
-          </a>
+          </RouterLink>
         </div>
       </section>
 
@@ -115,11 +115,11 @@ onBeforeUnmount(() => ctx?.revert())
       <section class="flex flex-col gap-[18px]" aria-labelledby="genres-h">
         <h2 id="genres-h" class="m-0 font-display text-[22px] font-extrabold tracking-[-0.01em]">Ton humeur, ton genre</h2>
         <div v-reveal="{ children: true, stagger: 0.07 }" class="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3.5">
-          <a v-for="x in genres" :key="x.label" href="#" class="group relative flex h-24 items-center overflow-hidden rounded-[20px] px-5 text-white no-underline">
+          <RouterLink v-for="x in genres" :key="x.label" :to="'/jeu/' + g(x.slug).id" class="group relative flex h-24 items-center overflow-hidden rounded-[20px] px-5 text-white no-underline">
             <img :src="g(x.slug).wide" alt="" class="absolute inset-0 size-full object-cover saturate-[1.2] transition-transform duration-700 group-hover:scale-110" />
             <span class="absolute inset-0 bg-ink/55 transition-colors duration-300 group-hover:bg-ink/35" />
             <span class="relative font-display text-[17px] font-extrabold transition-transform duration-300 group-hover:translate-x-1.5">{{ x.label }}</span>
-          </a>
+          </RouterLink>
         </div>
       </section>
     </main>
