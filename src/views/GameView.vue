@@ -15,6 +15,7 @@ import { byId, friends, games } from '../data/games'
 import { prefersReduced } from '../composables/motion'
 
 const route = useRoute()
+const reduced = prefersReduced()
 const game = computed(() => byId[route.params.id] ?? games[0])
 const playing = computed(() => friends.filter((f) => f.playing === game.value.id))
 const similar = computed(() => games.filter((g) => g.id !== game.value.id && g.genres.some((x) => game.value.genres.includes(x))).slice(0, 8))
@@ -22,30 +23,43 @@ const achPct = computed(() => (game.value.total ? Math.round((game.value.gotAch 
 const cta = computed(() => (game.value.installed ? 'Jouer' : game.value.owned ? 'Installer' : game.value.price === 'Gratuit' ? 'Jouer gratuitement' : 'Acheter · ' + (game.value.price || 'Steam')))
 const steamUrl = computed(() => `https://store.steampowered.com/app/${game.value.id}`)
 
-// Galerie : bandes-annonces d'abord, puis captures d'écran.
-const media = computed(() => [
-  ...game.value.movies.map((m) => ({ type: 'video', thumb: m.thumb, hls: m.hls, name: m.name })),
-  ...game.value.shots.map((s, i) => ({ type: 'shot', thumb: s.replace('.1920x1080', '.600x338'), full: s, name: `Capture ${i + 1}` })),
-])
+// Médias du héros : bandes-annonces d'abord, puis captures. Sans doublon (même URL ou même vidéo).
+const media = computed(() => {
+  const seen = new Set()
+  const out = []
+  const add = (m, key) => {
+    if (!key || seen.has(key)) return
+    seen.add(key)
+    out.push(m)
+  }
+  game.value.movies.forEach((m) => add({ type: 'video', thumb: m.thumb, hls: m.hls, name: m.name }, m.hls.split('?')[0]))
+  game.value.shots.forEach((s, i) => add({ type: 'shot', thumb: s.replace('.1920x1080', '.600x338'), full: s, name: `Capture ${i + 1}` }, s.split('?')[0]))
+  return out
+})
 const cur = ref(0)
 const item = computed(() => media.value[cur.value] ?? null)
-const step = (d) => (cur.value = (cur.value + d + media.value.length) % media.value.length)
-
-const clip = computed(() => (prefersReduced() ? null : game.value.movies?.[0] ?? null))
+const sound = ref(false)
 const videoOn = ref(false)
 let vt
 const onPlaying = () => { clearTimeout(vt); vt = setTimeout(() => (videoOn.value = true), 600) }
-watch(() => game.value.id, () => { clearTimeout(vt); videoOn.value = false })
+watch([() => game.value.id, cur], () => { clearTimeout(vt); videoOn.value = false })
+// Fond du héros : fondu GSAP à chaque changement de média.
+function bgEnter(el, done) {
+  if (prefersReduced()) return done()
+  gsap.fromTo(el, { opacity: 0, scale: 1.06 }, { opacity: 1, scale: 1, duration: 0.8, ease: 'power2.out', onComplete: done })
+}
+function bgLeave(el, done) {
+  gsap.to(el, { opacity: 0, duration: 0.6, ease: 'power2.inOut', onComplete: done })
+}
 
 const root = ref(null)
 let ctx
 function intro() {
   ctx?.revert()
   cur.value = 0
+  sound.value = false
   if (prefersReduced()) return
   ctx = gsap.context(() => {
-    gsap.fromTo('[data-bg]', { scale: 1.15, opacity: 0 }, { scale: 1.02, opacity: 1, duration: 1.4, ease: 'power2.out' })
-    gsap.to('[data-bg]', { scale: 1.1, duration: 22, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 1.4 })
     gsap.from('[data-in]', { opacity: 0, y: 26, stagger: 0.1, duration: 0.8, ease: 'power3.out', delay: 0.5 })
     gsap.from('[data-stat]', { opacity: 0, y: 40, scale: 0.95, stagger: 0.1, duration: 0.8, ease: 'power3.out', delay: 0.9 })
     gsap.from('[data-ach]', { opacity: 0, x: -24, stagger: 0.08, duration: 0.6, ease: 'power3.out', delay: 1.2 })
@@ -57,22 +71,24 @@ watch(() => route.params.id, async () => {
   window.scrollTo({ top: 0 })
   intro()
 })
-// Changement de média : fondu GSAP.
-watch(cur, async () => {
-  if (prefersReduced()) return
-  await nextTick()
-  gsap.fromTo('[data-stage]', { opacity: 0, scale: 1.03 }, { opacity: 1, scale: 1, duration: 0.5, ease: 'power2.out' })
-})
 onBeforeUnmount(() => ctx?.revert())
 </script>
 
 <template>
   <div ref="root" class="relative min-h-screen overflow-hidden bg-ink pt-[var(--header-h,100px)]">
-    <div aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-0 h-[min(860px,100vh)] overflow-hidden">
-      <img data-bg :key="game.id" :src="game.wide" alt="" class="size-full object-cover" />
-      <TrailerVideo v-if="clip" :key="clip.hls" ambient :start-at="7" :src="clip.hls" class="absolute inset-0 size-full object-cover transition-opacity duration-[1200ms]" :class="videoOn ? 'opacity-100' : 'opacity-0'" @playing="onPlaying" />
-      <div class="absolute inset-0 bg-gradient-to-r from-ink/90 via-ink/40 to-ink/10" />
-      <div class="absolute inset-0" style="background: linear-gradient(180deg, rgba(6,6,10,0.7) 0%, rgba(6,6,10,0) 25%, rgba(6,6,10,0.4) 60%, #06060A 100%)" />
+    <div class="pointer-events-none absolute inset-x-0 top-0 h-[min(900px,100vh)] overflow-hidden" aria-hidden="true">
+      <img :src="game.wide" alt="" class="absolute inset-0 size-full object-cover" />
+      <Transition :css="false" appear @enter="bgEnter" @leave="bgLeave">
+        <div v-if="item" :key="item.hls || item.full" class="absolute inset-0">
+          <img v-if="item.type === 'shot'" :src="item.full" alt="" class="absolute inset-0 size-full object-cover" />
+          <template v-else>
+            <img :src="game.shots[0] || item.thumb" alt="" class="absolute inset-0 size-full object-cover" />
+            <TrailerVideo v-if="!reduced" ambient :sound="sound" :start-at="7" :src="item.hls" class="absolute inset-0 size-full object-cover transition-opacity duration-[1200ms]" :class="videoOn ? 'opacity-100' : 'opacity-0'" @playing="onPlaying" />
+          </template>
+        </div>
+      </Transition>
+      <div class="absolute inset-0 bg-gradient-to-r from-ink/90 via-ink/30 to-ink/5" />
+      <div class="absolute inset-0" style="background: linear-gradient(180deg, rgba(6,6,10,0.7) 0%, rgba(6,6,10,0) 25%, rgba(6,6,10,0.35) 60%, #06060A 100%)" />
     </div>
 
     <main class="shell relative flex flex-col gap-12 pb-16 pt-6">
@@ -108,6 +124,31 @@ onBeforeUnmount(() => ctx?.revert())
         </div>
       </section>
 
+
+      <!-- Choix du média affiché en fond du héros -->
+      <div v-if="media.length > 1" data-in class="flex items-center gap-3">
+        <div class="no-scrollbar flex min-w-0 flex-1 gap-3 overflow-x-auto py-1.5" role="listbox" aria-label="Choisir la vidéo ou la capture affichée en fond">
+          <button
+            v-for="(m, i) in media"
+            :key="m.hls || m.full"
+            type="button"
+            role="option"
+            :aria-selected="i === cur"
+            :aria-label="m.name"
+            class="relative aspect-video w-[132px] shrink-0 overflow-hidden rounded-xl border-0 p-0 transition-all duration-300 hover:opacity-100 xl:w-[156px] 2xl:w-[200px]"
+            :class="i === cur ? 'opacity-100 shadow-[0_0_0_3px_var(--accent)]' : 'opacity-60'"
+            @click="cur = i"
+          >
+            <img :src="m.thumb" alt="" class="size-full object-cover" />
+            <span v-if="m.type === 'video'" class="absolute inset-0 flex items-center justify-center bg-ink/40"><svg width="22" height="22" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><polygon points="7,4 20,12 7,20" /></svg></span>
+          </button>
+        </div>
+        <button v-if="item && item.type === 'video'" type="button" :aria-pressed="sound" :aria-label="sound ? 'Couper le son' : 'Activer le son'" class="glass-btn flex size-12 shrink-0 items-center justify-center rounded-full text-white transition-transform hover:scale-110" @click="sound = !sound">
+          <svg v-if="sound" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="11,5 6,9 2,9 2,15 6,15 11,19" /><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14" /></svg>
+          <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="11,5 6,9 2,9 2,15 6,15 11,19" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></svg>
+        </button>
+      </div>
+
       <!-- Chiffres -->
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SpotlightCard data-stat class="card flex flex-col gap-1.5 p-6">
@@ -133,41 +174,6 @@ onBeforeUnmount(() => ctx?.revert())
           <span class="text-sm">{{ playing.length ? playing.map((f) => f.name).join(', ') + ' en ligne' : 'Personne en ce moment' }}</span>
         </div>
       </div>
-
-      <!-- Galerie : bandes-annonces + captures -->
-      <section v-if="media.length" class="flex flex-col gap-4" aria-labelledby="media-h">
-        <h2 id="media-h" class="m-0 font-display text-[22px] font-extrabold tracking-[-0.01em]">Vidéos et captures</h2>
-        <div class="relative aspect-video w-full overflow-hidden rounded-3xl bg-panel shadow-[0_30px_70px_rgba(0,0,0,0.5)]">
-          <div data-stage class="absolute inset-0">
-            <TrailerVideo v-if="item.type === 'video'" :key="item.hls" :src="item.hls" :poster="game.shots[0] || item.thumb" class="size-full bg-black object-contain" />
-            <img v-else :key="item.full" :src="item.full" :alt="item.name" class="size-full object-cover" />
-          </div>
-          <template v-if="media.length > 1">
-            <button type="button" aria-label="Précédent" class="glass-btn absolute left-4 top-1/2 flex size-12 -translate-y-1/2 items-center justify-center rounded-full text-white transition-transform hover:scale-110" @click="step(-1)">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="15,5 8,12 15,19" /></svg>
-            </button>
-            <button type="button" aria-label="Suivant" class="glass-btn absolute right-4 top-1/2 flex size-12 -translate-y-1/2 items-center justify-center rounded-full text-white transition-transform hover:scale-110" @click="step(1)">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9,5 16,12 9,19" /></svg>
-            </button>
-          </template>
-        </div>
-        <div class="no-scrollbar flex gap-3 overflow-x-auto py-1" role="listbox" aria-label="Médias">
-          <button
-            v-for="(m, i) in media"
-            :key="m.thumb"
-            type="button"
-            role="option"
-            :aria-selected="i === cur"
-            :aria-label="m.name"
-            class="relative aspect-video w-[168px] shrink-0 overflow-hidden rounded-2xl border-0 p-0 transition-all duration-300 hover:opacity-100 2xl:w-[220px]"
-            :class="i === cur ? 'opacity-100 shadow-[0_0_0_3px_var(--accent)]' : 'opacity-60'"
-            @click="cur = i"
-          >
-            <img :src="m.thumb" alt="" class="size-full object-cover" />
-            <span v-if="m.type === 'video'" class="absolute inset-0 flex items-center justify-center bg-ink/40"><svg width="26" height="26" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><polygon points="7,4 20,12 7,20" /></svg></span>
-          </button>
-        </div>
-      </section>
 
       <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <section v-reveal class="flex flex-col gap-4 lg:col-span-2" aria-labelledby="about-h">

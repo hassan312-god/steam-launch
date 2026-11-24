@@ -7,6 +7,7 @@ const props = defineProps({
   poster: { type: String, default: '' },
   ambient: { type: Boolean, default: false }, // fond muet en boucle, sans contrôles
   autoplay: { type: Boolean, default: false },
+  sound: { type: Boolean, default: false }, // fond avec le son activé
   startAt: { type: Number, default: 0 }, // saute l'intro (souvent noire) des bandes-annonces
 })
 const emit = defineEmits(['playing'])
@@ -22,7 +23,7 @@ async function attach() {
   } else {
     const { default: Hls } = await import('hls.js')
     if (!Hls.isSupported() || !video.value) return
-    hls = new Hls({ capLevelToPlayerSize: true, startLevel: props.ambient ? 0 : -1, maxBufferLength: 20 })
+    hls = new Hls({ capLevelToPlayerSize: true, startLevel: -1, maxBufferLength: 20 })
     hls.loadSource(props.src)
     hls.attachMedia(v)
   }
@@ -45,7 +46,7 @@ onBeforeUnmount(() => {
   <video
     ref="video"
     :poster="poster || undefined"
-    :muted="ambient || autoplay"
+    :muted="(ambient && !sound) || autoplay"
     :loop="ambient"
     :controls="!ambient"
     playsinline

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import gsap from 'gsap'
 import PageBackdrop from '../components/PageBackdrop.vue'
@@ -7,12 +7,29 @@ import SplitText from '../components/bits/SplitText.vue'
 import SpotlightCard from '../components/bits/SpotlightCard.vue'
 import TiltedCard from '../components/bits/TiltedCard.vue'
 import Ring from '../components/bits/Ring.vue'
-import { byId, genres, radar } from '../data/games'
+import { byId, games, genres, radar } from '../data/games'
 import { prefersReduced } from '../composables/motion'
 
 const q = ref('')
 const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 const list = computed(() => radar.filter((r) => !q.value || norm(r.game.title + ' ' + r.why).includes(norm(q.value))))
+const genre = ref(null)
+const genreList = computed(() => (genre.value ? games.filter((x) => x.genres.includes(genre.value)) : []))
+const counts = Object.fromEntries(genres.map((x) => [x.label, games.filter((g) => g.genres.includes(x.label)).length]))
+const genreSection = ref(null)
+async function pickGenre(label) {
+  genre.value = genre.value === label ? null : label
+  if (!genre.value) return
+  await nextTick()
+  genreSection.value?.scrollIntoView({ behavior: prefersReduced() ? 'auto' : 'smooth', block: 'center' })
+}
+function gEnter(el, done) {
+  if (prefersReduced()) return done()
+  gsap.fromTo(el, { opacity: 0, y: 30, scale: 0.94 }, { opacity: 1, y: 0, scale: 1, duration: 0.5, delay: Math.min(el.dataset.i * 0.04, 0.5), ease: 'power3.out', onComplete: done })
+}
+function gLeave(el, done) {
+  gsap.to(el, { opacity: 0, scale: 0.92, duration: 0.15, onComplete: done })
+}
 const featured = byId['2215430']
 const wish = byId['1627720']
 const duo = byId['1551360']
@@ -118,11 +135,29 @@ onBeforeUnmount(() => ctx?.revert())
       <section class="flex flex-col gap-[18px]" aria-labelledby="genres-h">
         <h2 id="genres-h" class="m-0 font-display text-[22px] font-extrabold tracking-[-0.01em]">Ton humeur, ton genre</h2>
         <div v-reveal="{ children: true, stagger: 0.07 }" class="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3.5">
-          <RouterLink v-for="x in genres" :key="x.label" :to="'/jeu/' + x.game.id" class="group relative flex h-24 items-center overflow-hidden rounded-[20px] px-5 text-white no-underline">
+          <button v-for="x in genres" :key="x.label" type="button" :aria-pressed="genre === x.label" class="group relative flex h-24 items-center justify-between overflow-hidden rounded-[20px] border-0 bg-panel px-5 text-left text-white transition-shadow duration-300" :class="genre === x.label ? 'shadow-[0_0_0_3px_var(--accent)]' : ''" @click="pickGenre(x.label)">
             <img :src="x.game.wide" alt="" class="absolute inset-0 size-full object-cover saturate-[1.2] transition-transform duration-700 group-hover:scale-110" />
-            <span class="absolute inset-0 bg-ink/55 transition-colors duration-300 group-hover:bg-ink/35" />
+            <span class="absolute inset-0 transition-colors duration-300" :class="genre === x.label ? 'bg-ink/30' : 'bg-ink/55 group-hover:bg-ink/35'" />
             <span class="relative font-display text-[17px] font-extrabold transition-transform duration-300 group-hover:translate-x-1.5">{{ x.label }}</span>
-          </RouterLink>
+            <span class="relative rounded-full bg-ink/60 px-2.5 py-1 text-xs font-bold backdrop-blur-md">{{ counts[x.label] }}</span>
+          </button>
+        </div>
+        <div v-if="genre" ref="genreSection" class="flex flex-col gap-5 pt-4">
+          <div class="flex items-center justify-between gap-4">
+            <h3 class="m-0 font-display text-xl font-extrabold">{{ genre }} <span class="text-base text-mute">· {{ genreList.length }} jeux</span></h3>
+            <button type="button" class="h-10 rounded-full border border-white/[0.14] bg-panel/80 px-4 text-sm font-semibold text-white transition-colors hover:border-white/40" @click="genre = null">Effacer le filtre</button>
+          </div>
+          <div class="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-x-5 gap-y-7">
+            <TransitionGroup :css="false" appear @enter="gEnter" @leave="gLeave">
+              <RouterLink v-for="(g, i) in genreList" :key="g.id" :data-i="i" :to="'/jeu/' + g.id" class="group flex flex-col gap-2.5 text-white no-underline">
+                <div class="relative aspect-[2/3] overflow-hidden rounded-[20px] shadow-[0_18px_40px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:-translate-y-1.5">
+                  <img :src="g.cover" alt="" loading="lazy" class="block size-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                  <span class="absolute left-2.5 top-2.5 rounded-full px-[9px] py-[5px] text-[11px] font-extrabold tracking-[0.06em] text-ink" :class="g.owned ? 'bg-accent' : 'bg-soft'">{{ g.owned ? 'BIBLIOTHÈQUE' : g.price || 'MAGASIN' }}</span>
+                </div>
+                <span class="text-[15px] font-bold">{{ g.title }}</span>
+              </RouterLink>
+            </TransitionGroup>
+          </div>
         </div>
       </section>
     </main>
