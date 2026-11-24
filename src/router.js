@@ -1,0 +1,19 @@
+import { createRouter, createWebHistory } from 'vue-router'
+
+const routes = [
+  { path: '/', name: 'loading', component: () => import('./views/LoadingView.vue'), meta: { bare: true } },
+  { path: '/accueil', name: 'home', component: () => import('./views/HomeView.vue'), meta: { title: 'Accueil' } },
+  { path: '/magasin', name: 'store', component: () => import('./views/StoreView.vue'), meta: { title: 'Magasin' } },
+  { path: '/bibliotheque', name: 'library', component: () => import('./views/LibraryView.vue'), meta: { title: 'Bibliothèque' } },
+  { path: '/amis', name: 'friends', component: () => import('./views/FriendsView.vue'), meta: { title: 'Amis' } },
+  { path: '/parametres', name: 'settings', component: () => import('./views/SettingsView.vue'), meta: { title: 'Paramètres' } },
+  { path: '/:pathMatch(.*)*', redirect: '/' },
+]
+
+const router = createRouter({ history: createWebHistory(), routes, scrollBehavior: () => ({ top: 0 }) })
+
+router.afterEach((to) => {
+  document.title = to.meta.title ? `G.A — ${to.meta.title}` : 'G.A — Launcher'
+})
+
+export default router
