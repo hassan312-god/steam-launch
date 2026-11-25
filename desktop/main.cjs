@@ -127,6 +127,7 @@ ipcMain.handle('settings:set', (_e, patch = {}) => {
   return settings
 })
 ipcMain.handle('steam:install', (_e, id) => steam('install', id))
+ipcMain.handle('steam:downloads', () => shell.openExternal('steam://open/downloads')) // file de téléchargement du client Steam (pause / priorité)
 ipcMain.handle('steam:play', (_e, id) => steam('rungameid', id))
 ipcMain.handle('steam:uninstall', (_e, id) => steam('uninstall', id))
 ipcMain.handle('steam:folder', (_e, id) => {
