@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('launcher', {
   },
   cmd: {
     state: () => ipcRenderer.invoke('steamcmd:state'),
+    suggest: () => ipcRenderer.invoke('steamcmd:suggest'),
     login: (user, password) => ipcRenderer.invoke('steamcmd:login', { user: String(user), password: String(password) }),
     code: (code) => ipcRenderer.invoke('steamcmd:code', String(code)),
     cancelLogin: () => ipcRenderer.invoke('steamcmd:cancel-login'),

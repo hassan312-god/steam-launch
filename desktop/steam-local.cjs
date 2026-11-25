@@ -103,4 +103,17 @@ function scan() {
   return { steamFound: libs.length > 0, libraries: libs, apps }
 }
 
-module.exports = { parseVdf, scan, libraries }
+// Nom de compte du dernier utilisateur connecté dans le client Steam de cet ordinateur (config/loginusers.vdf).
+function lastAccount() {
+  for (const root of steamRoots()) {
+    try {
+      const users = parseVdf(fs.readFileSync(path.join(root, 'config', 'loginusers.vdf'), 'utf8')).users || {}
+      const list = Object.values(users).filter((u) => u && u.accountname)
+      const u = list.find((x) => x.mostrecent === '1') || list[0]
+      if (u && /^[A-Za-z0-9_.-]{2,64}$/.test(u.accountname)) return u.accountname
+    } catch { /* fichier absent */ }
+  }
+  return null
+}
+
+module.exports = { parseVdf, scan, libraries, lastAccount }

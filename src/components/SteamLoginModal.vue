@@ -13,6 +13,7 @@ const code = ref('')
 const auth = computed(() => desktop.cmd.auth)
 const setup = computed(() => desktop.cmd.setup)
 const open = computed(() => !!desktop.loginAsk)
+const detected = ref('')
 const busy = computed(() => auth.value.state === 'working' || setup.value.state === 'working')
 
 function close() {
@@ -28,6 +29,12 @@ async function submit() {
 }
 const sendCode = () => code.value && (cmd.code(code.value.trim()), (code.value = ''))
 // Connexion réussie : on lance le téléchargement qui l'a demandée.
+// Le nom de compte est retrouvé dans le client Steam de l'ordinateur : il ne reste que le mot de passe à saisir.
+watch(open, async (o) => {
+  if (!o || user.value) return
+  const a = await window.launcher.cmd.suggest?.().catch(() => null)
+  if (a) (user.value = a), (detected.value = a)
+})
 watch(() => auth.value.state, (st) => {
   if (st !== 'ok' || !desktop.loginAsk) return
   const g = desktop.loginAsk.game
@@ -46,14 +53,15 @@ function useClient() {
 
 <template>
   <Modal :open="open" title="Connecte ton compte Steam" @close="close">
-    <p class="m-0 mb-4 text-sm leading-relaxed text-soft">Pour télécharger tes jeux <strong class="text-white">directement dans le launcher</strong> (avec pause et reprise), connecte-toi une fois à Steam. Tes identifiants vont uniquement à SteamCMD, l’outil officiel de Valve, sur cet ordinateur.</p>
+    <p class="m-0 mb-4 text-sm leading-relaxed text-soft">Ta connexion Steam sur le site ne donne pas le droit de télécharger : pour le faire <strong class="text-white">directement dans le launcher</strong> (avec pause et reprise), SteamCMD, l’outil officiel de Valve, a besoin de ton mot de passe, une seule fois. Il va uniquement à SteamCMD, sur cet ordinateur.</p>
 
     <p v-if="setup.state !== 'idle'" class="m-0 mb-3 rounded-xl bg-white/5 p-3 text-sm" :class="setup.state === 'error' ? 'text-hot' : 'text-soft'" role="status">{{ setup.message }}</p>
 
     <form v-if="auth.state !== 'code' && auth.state !== 'confirm'" class="flex flex-col gap-3" @submit.prevent="submit">
       <label class="flex flex-col gap-1.5 text-[13px] text-mute">Nom de compte Steam
-        <input v-model="user" type="text" autocomplete="username" spellcheck="false" :disabled="busy" class="h-[46px] rounded-xl border border-white/[0.14] bg-ink/60 px-4 text-[15px] text-white focus:border-accent focus:outline-none" />
+        <input v-model="user" type="text" autocomplete="username" spellcheck="false" :disabled="busy" @focus="detected = ''" class="h-[46px] rounded-xl border border-white/[0.14] bg-ink/60 px-4 text-[15px] text-white focus:border-accent focus:outline-none" />
       </label>
+      <p v-if="detected" class="m-0 -mt-1 text-xs text-mute">Compte trouvé dans ton client Steam.</p>
       <label class="flex flex-col gap-1.5 text-[13px] text-mute">Mot de passe
         <input v-model="pass" type="password" autocomplete="current-password" :disabled="busy" class="h-[46px] rounded-xl border border-white/[0.14] bg-ink/60 px-4 text-[15px] text-white focus:border-accent focus:outline-none" />
       </label>
