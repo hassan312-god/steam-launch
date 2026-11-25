@@ -13,6 +13,7 @@ const defaults = {
   activity: true,
   lang: 'Français',
   bandwidth: 50,
+  username: 'hassan312',
 }
 
 function load() {

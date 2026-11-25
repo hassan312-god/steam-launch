@@ -12,6 +12,7 @@ import SpotlightCard from '../components/bits/SpotlightCard.vue'
 import TiltedCard from '../components/bits/TiltedCard.vue'
 import TrailerVideo from '../components/TrailerVideo.vue'
 import { byId, friends, games } from '../data/games'
+import { install, play, toggleFav } from '../composables/useLaunch'
 import { prefersReduced } from '../composables/motion'
 
 const route = useRoute()
@@ -110,12 +111,13 @@ onBeforeUnmount(() => ctx?.revert())
           <p data-in class="m-0 text-[15px] text-soft">{{ game.studio }} · {{ game.year }}<span v-if="game.metacritic"> · Metacritic {{ game.metacritic }}</span></p>
           <div data-in class="flex flex-wrap items-center gap-3">
             <Magnet :padding="30" :strength="0.25">
-              <button type="button" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink">
+              <a v-if="!game.owned" :href="steamUrl" target="_blank" rel="noopener noreferrer" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink no-underline"><ShinyText :speed="4">{{ cta }}</ShinyText></a>
+              <button v-else type="button" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="game.installed ? play(game) : install(game)">
                 <svg v-if="game.installed" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6,4 20,12 6,20" /></svg>
                 <ShinyText :speed="4">{{ cta }}</ShinyText>
               </button>
             </Magnet>
-            <button type="button" class="flex h-[60px] items-center gap-2 rounded-full border border-white/[0.16] bg-ink/50 px-6 text-[15px] font-semibold text-white transition-colors hover:bg-white/10">
+            <button type="button" :aria-pressed="game.fav" class="flex h-[60px] items-center gap-2 rounded-full border border-white/[0.16] bg-ink/50 px-6 text-[15px] font-semibold text-white transition-colors hover:bg-white/10" @click="toggleFav(game)">
               <svg width="18" height="18" viewBox="0 0 24 24" :fill="game.fav ? '#FF3D9A' : 'none'" stroke="#FF3D9A" stroke-width="2" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z" /></svg>
               {{ game.fav ? 'Dans mes favoris' : 'Ajouter aux favoris' }}
             </button>
