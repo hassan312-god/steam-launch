@@ -3,7 +3,7 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import gsap from 'gsap'
 import Logo from './Logo.vue'
-import { theme } from '../composables/useTheme'
+import { displayName, steam } from '../composables/useSteam'
 import SearchOverlay from './SearchOverlay.vue'
 import NotificationsPanel from './NotificationsPanel.vue'
 import { prefersReduced } from '../composables/motion'
@@ -101,7 +101,10 @@ watch(() => route.path, () => {
         </button>
         <NotificationsPanel :open="notifOpen" :unread="unread" @close="notifOpen = false" @read="unread = false" />
       </div>
-      <RouterLink to="/parametres" aria-label="Mon profil" class="flex size-12 items-center justify-center rounded-full border-[3px] border-accent bg-avatar font-display text-[15px] font-extrabold uppercase text-white no-underline transition-transform hover:scale-105">{{ (theme.username || 'J')[0] }}</RouterLink>
+      <RouterLink to="/parametres" aria-label="Mon profil" class="flex size-12 items-center justify-center overflow-hidden rounded-full border-[3px] border-accent bg-avatar font-display text-[15px] font-extrabold uppercase text-white no-underline transition-transform hover:scale-105">
+        <img v-if="steam.profile?.avatar" :src="steam.profile.avatar" alt="" class="size-full object-cover" />
+        <template v-else>{{ (displayName || 'J')[0] }}</template>
+      </RouterLink>
     </div>
   </header>
   <SearchOverlay :open="searchOpen" @close="searchOpen = false" />

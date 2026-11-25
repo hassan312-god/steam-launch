@@ -6,7 +6,8 @@ import PageBackdrop from '../components/PageBackdrop.vue'
 import SplitText from '../components/bits/SplitText.vue'
 import CountUp from '../components/bits/CountUp.vue'
 import SpotlightCard from '../components/bits/SpotlightCard.vue'
-import { homeGames, myGames } from '../data/games'
+import { fmt, homeGames, libraryAll } from '../data/games'
+import { displayName, steam } from '../composables/useSteam'
 import { toggleFav } from '../composables/useLaunch'
 import { theme } from '../composables/useTheme'
 import { prefersReduced } from '../composables/motion'
@@ -18,26 +19,33 @@ const filters = {
   'En promotion': (g) => g.discount > 0,
   'Coopération': (g) => g.cats.some((c) => /Coopération/.test(c)),
 }
-const sorts = ['Ajout récent', 'Nom', 'Prix', 'Metacritic']
+const sortsBase = ['Ajout récent', 'Nom', 'Prix', 'Metacritic']
+const connected = computed(() => steam.status === 'in' && steam.gamesVisible)
+const sorts = computed(() => (connected.value ? ['Temps de jeu', 'Joué récemment', ...sortsBase] : sortsBase))
 
 const f = ref('Tout')
-const sort = ref(sorts[0])
-const all = myGames
+const sort = ref(null)
+const sortNow = computed(() => (sorts.value.includes(sort.value) ? sort.value : sorts.value[0]))
+const all = libraryAll
 const list = computed(() => {
   const l = all.value.filter(filters[f.value])
-  if (sort.value === 'Ajout récent') return [...l].reverse()
-  if (sort.value === 'Nom') return [...l].sort((a, b) => a.title.localeCompare(b.title, 'fr'))
-  if (sort.value === 'Prix') return [...l].sort((a, b) => b.num - a.num)
+  if (sortNow.value === 'Temps de jeu') return [...l].sort((a, b) => (b.hours ?? 0) - (a.hours ?? 0))
+  if (sortNow.value === 'Joué récemment') return [...l].sort((a, b) => (b.last ?? 0) - (a.last ?? 0))
+  if (sortNow.value === 'Ajout récent') return [...l].reverse()
+  if (sortNow.value === 'Nom') return [...l].sort((a, b) => a.title.localeCompare(b.title, 'fr'))
+  if (sortNow.value === 'Prix') return [...l].sort((a, b) => b.num - a.num)
   return [...l].sort((a, b) => (b.metacritic ?? 0) - (a.metacritic ?? 0))
 })
 
 // Statistiques calculées sur ta vraie sélection.
 const count = computed(() => all.value.length)
 const favCount = computed(() => all.value.filter((g) => g.fav).length)
+const totalHours = computed(() => all.value.reduce((n, g) => n + (g.hours ?? 0), 0))
+const mostPlayed = computed(() => [...all.value].sort((a, b) => (b.hours ?? 0) - (a.hours ?? 0))[0])
 const worth = computed(() => Math.round(all.value.reduce((n, g) => n + g.num, 0)))
 const topGenre = computed(() => {
   const c = {}
-  all.value.forEach((g) => g.genres.forEach((x) => (c[x] = (c[x] || 0) + 1)))
+  all.value.forEach((g) => (g.genres || []).forEach((x) => (c[x] = (c[x] || 0) + 1)))
   return Object.entries(c).sort((a, b) => b[1] - a[1])[0]
 })
 const minCol = computed(() => ({ Compact: 140, Confort: 180, Géant: 240 })[theme.density] ?? 180)
@@ -69,7 +77,7 @@ function leave(el, done) {
 
     <main class="shell relative flex flex-col gap-8 pb-14 pt-2">
       <div data-head class="flex flex-col gap-2">
-        <span class="eyebrow">La collection de {{ theme.username }}</span>
+        <span class="eyebrow">La collection de {{ displayName }}</span>
         <h1 class="page-title m-0"><SplitText text="Bibliothèque" :delay="0.15" /></h1>
       </div>
 
@@ -77,7 +85,7 @@ function leave(el, done) {
       <section v-if="!count" class="flex flex-col gap-6 rounded-3xl border border-dashed border-white/20 p-8 sm:p-12" aria-labelledby="empty-h">
         <div class="flex flex-col gap-2">
           <h2 id="empty-h" class="m-0 font-display text-2xl font-extrabold">Ta bibliothèque est vide</h2>
-          <p class="m-0 max-w-[560px] text-soft">Ouvre la fiche d’un jeu et clique sur « Ajouter à ma bibliothèque ». Voici quelques idées du moment :</p>
+          <p class="m-0 max-w-[560px] text-soft">Connecte ton compte Steam pour retrouver tes vrais jeux et tes heures, ou ouvre la fiche d’un jeu et clique sur « Ajouter à ma bibliothèque ». Idées du moment :</p>
         </div>
         <div class="no-scrollbar flex gap-4 overflow-x-auto py-2">
           <RouterLink v-for="g in suggestions" :key="g.id" :to="'/jeu/' + g.id" class="w-[150px] shrink-0 text-white no-underline transition-transform hover:-translate-y-1">
@@ -85,27 +93,41 @@ function leave(el, done) {
             <span class="mt-2 block text-sm font-bold">{{ g.title }}</span>
           </RouterLink>
         </div>
-        <RouterLink to="/magasin" class="flex h-[52px] items-center self-start rounded-full bg-accent px-7 text-[15px] font-extrabold text-ink no-underline">Parcourir le magasin</RouterLink>
+        <div class="flex flex-wrap gap-3">
+          <a v-if="steam.status !== 'in'" href="/api/steam/login" class="flex h-[52px] items-center rounded-full bg-accent px-7 text-[15px] font-extrabold text-ink no-underline">Se connecter avec Steam</a>
+          <RouterLink to="/magasin" class="flex h-[52px] items-center rounded-full border border-white/20 px-7 text-[15px] font-bold text-white no-underline hover:bg-white/10">Parcourir le magasin</RouterLink>
+        </div>
       </section>
 
       <template v-else>
+        <p v-if="steam.status === 'in' && !steam.gamesVisible" class="m-0 rounded-2xl border border-white/10 bg-panel p-4 text-sm text-soft" role="status">Ton profil Steam est connecté, mais tes <strong>détails de jeu sont privés</strong> : mets-les en « Public » dans Steam (Profil → Confidentialité) pour voir tes jeux et tes heures.</p>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <SpotlightCard data-stat class="card flex flex-col gap-1.5 p-6">
             <span class="text-[13px] text-mute">Jeux dans ta bibliothèque</span>
             <span class="font-display text-5xl font-black leading-none"><CountUp :to="count" :duration="1.4" :delay="0.4" /></span>
             <span class="text-[13px] font-semibold text-accent">{{ favCount }} en favori{{ favCount > 1 ? 's' : '' }}</span>
           </SpotlightCard>
-          <SpotlightCard data-stat class="card flex flex-col gap-1.5 p-6">
+          <SpotlightCard v-if="connected" data-stat class="card flex flex-col gap-1.5 p-6">
+            <span class="text-[13px] text-mute">Temps de jeu total</span>
+            <span class="font-display text-5xl font-black leading-none"><CountUp :to="totalHours" :duration="1.8" :delay="0.5" /><span class="text-[22px]"> h</span></span>
+            <span class="text-[13px] text-mute">Heures réelles sur Steam</span>
+          </SpotlightCard>
+          <SpotlightCard v-else data-stat class="card flex flex-col gap-1.5 p-6">
             <span class="text-[13px] text-mute">Valeur au prix Steam</span>
             <span class="font-display text-5xl font-black leading-none"><CountUp :to="worth" :duration="1.6" :delay="0.5" /><span class="text-[22px]"> €</span></span>
             <span class="text-[13px] text-mute">Somme des prix actuels</span>
           </SpotlightCard>
-          <SpotlightCard data-stat class="card flex flex-col gap-1.5 p-6">
+          <SpotlightCard v-if="topGenre" data-stat class="card flex flex-col gap-1.5 p-6">
             <span class="text-[13px] text-mute">Genre le plus présent</span>
-            <span class="font-display text-3xl font-black leading-tight">{{ topGenre?.[0] }}</span>
-            <span class="text-[13px] text-mute">{{ topGenre?.[1] }} jeu{{ topGenre?.[1] > 1 ? 'x' : '' }}</span>
+            <span class="font-display text-3xl font-black leading-tight">{{ topGenre[0] }}</span>
+            <span class="text-[13px] text-mute">{{ topGenre[1] }} jeu{{ topGenre[1] > 1 ? 'x' : '' }}</span>
           </SpotlightCard>
-          <SpotlightCard data-stat class="card flex flex-col gap-1.5 p-6">
+          <SpotlightCard v-if="connected && mostPlayed" data-stat class="card flex flex-col gap-1.5 p-6">
+            <span class="text-[13px] text-mute">Ton jeu le plus joué</span>
+            <span class="font-display text-xl font-extrabold leading-tight">{{ mostPlayed.title }}</span>
+            <span class="text-[13px] text-mute">{{ fmt.format(mostPlayed.hours) }} h</span>
+          </SpotlightCard>
+          <SpotlightCard v-else data-stat class="card flex flex-col gap-1.5 p-6">
             <span class="text-[13px] text-mute">Dernier ajout</span>
             <span class="font-display text-xl font-extrabold leading-tight">{{ all[all.length - 1].title }}</span>
             <span class="text-[13px] text-mute">{{ all[all.length - 1].price || 'Gratuit' }}</span>
@@ -126,8 +148,8 @@ function leave(el, done) {
           </div>
           <div class="flex items-center gap-2.5">
             <label for="tri" class="text-[13px] text-mute">Trier par</label>
-            <select id="tri" v-model="sort" class="h-[42px] rounded-full border border-white/[0.14] bg-panel px-4 text-sm text-white">
-              <option v-for="s in sorts" :key="s">{{ s }}</option>
+            <select id="tri" :value="sortNow" @change="sort = $event.target.value" class="h-[42px] rounded-full border border-white/[0.14] bg-panel px-4 text-sm text-white">
+              <option v-for="s in sorts" :key="s" :value="s">{{ s }}</option>
             </select>
           </div>
         </div>
@@ -136,15 +158,15 @@ function leave(el, done) {
         <div class="grid gap-x-5 gap-y-[30px]" :style="{ gridTemplateColumns: `repeat(auto-fill, minmax(${minCol}px, 1fr))` }">
           <TransitionGroup :css="false" appear move-class="lib-move" @enter="enter" @leave="leave">
             <div v-for="(g, i) in list" :key="g.id" :data-i="i" class="group relative flex flex-col gap-3">
-              <RouterLink :to="'/jeu/' + g.id" class="flex flex-col gap-3 text-white no-underline">
-                <div class="relative aspect-[2/3] overflow-hidden rounded-[22px] shadow-[0_18px_40px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:-translate-y-1.5">
-                  <img :src="g.cover" alt="" loading="lazy" class="block size-full object-cover transition-transform duration-700 group-hover:scale-110" />
+              <component :is="g.external ? 'a' : 'RouterLink'" v-bind="g.external ? { href: 'https://store.steampowered.com/app/' + g.id, target: '_blank', rel: 'noopener noreferrer' } : { to: '/jeu/' + g.id }" class="flex flex-col gap-3 text-white no-underline">
+                <div class="relative aspect-[2/3] overflow-hidden rounded-[22px] bg-panel shadow-[0_18px_40px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:-translate-y-1.5">
+                  <img :src="g.cover" alt="" loading="lazy" class="block size-full object-cover transition-transform duration-700 group-hover:scale-110" @error="$event.target.src = g.wide" />
                   <span v-if="g.discount" class="absolute left-2.5 top-2.5 rounded-full bg-hot px-[9px] py-[5px] text-[11px] font-extrabold tracking-[0.06em] text-ink">-{{ g.discount }} %</span>
                 </div>
                 <span class="text-[15px] font-bold">{{ g.title }}</span>
-                <span class="-mt-1.5 text-xs text-mute">{{ g.genres.slice(0, 2).join(' · ') }}</span>
-              </RouterLink>
-              <button type="button" :aria-pressed="g.fav" :aria-label="g.fav ? 'Retirer des favoris' : 'Ajouter aux favoris'" class="absolute right-2.5 top-2.5 flex size-[34px] items-center justify-center rounded-full border-0 bg-ink/70 transition-transform hover:scale-110" @click="toggleFav(g)">
+                <span class="-mt-1.5 text-xs text-mute">{{ g.hours != null ? fmt.format(g.hours) + ' h de jeu' : (g.genres || []).slice(0, 2).join(' · ') }}</span>
+              </component>
+              <button v-if="!g.external" type="button" :aria-pressed="g.fav" :aria-label="g.fav ? 'Retirer des favoris' : 'Ajouter aux favoris'" class="absolute right-2.5 top-2.5 flex size-[34px] items-center justify-center rounded-full border-0 bg-ink/70 transition-transform hover:scale-110" @click="toggleFav(g)">
                 <svg width="15" height="15" viewBox="0 0 24 24" :fill="g.fav ? '#FF3D9A' : 'none'" stroke="#FF3D9A" stroke-width="2" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z" /></svg>
               </button>
             </div>

@@ -117,7 +117,8 @@ onBeforeUnmount(() => ctx?.revert())
               </button>
               <a v-else :href="steamUrl" target="_blank" rel="noopener noreferrer" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink no-underline"><ShinyText :speed="4">{{ buyLabel }}</ShinyText></a>
             </Magnet>
-            <button type="button" :aria-pressed="game.owned" class="flex h-[60px] items-center gap-2 rounded-full border px-6 text-[15px] font-semibold text-white transition-colors" :class="game.owned ? 'border-accent bg-accent/15' : 'border-white/[0.16] bg-ink/50 hover:bg-white/10'" @click="toggleLibrary(game)">
+            <span v-if="game.steam && !game.local" class="flex h-[60px] items-center gap-2 rounded-full border border-accent bg-accent/15 px-6 text-[15px] font-semibold text-white">✓ Dans ta bibliothèque Steam</span>
+            <button v-else type="button" :aria-pressed="game.owned" class="flex h-[60px] items-center gap-2 rounded-full border px-6 text-[15px] font-semibold text-white transition-colors" :class="game.owned ? 'border-accent bg-accent/15' : 'border-white/[0.16] bg-ink/50 hover:bg-white/10'" @click="toggleLibrary(game)">
               {{ game.owned ? '✓ Dans ma bibliothèque' : '+ Ajouter à ma bibliothèque' }}
             </button>
             <button type="button" :aria-pressed="game.fav" :aria-label="game.fav ? 'Retirer des favoris' : 'Ajouter aux favoris'" class="flex size-[60px] items-center justify-center rounded-full border border-white/[0.16] bg-ink/50 transition-colors hover:bg-white/10" @click="toggleFav(game)">
@@ -158,7 +159,7 @@ onBeforeUnmount(() => ctx?.revert())
         <SpotlightCard data-stat class="card flex flex-col gap-1.5 p-6">
           <span class="text-[13px] text-mute">Prix</span>
           <span class="font-display text-4xl font-black leading-none">{{ game.price || 'Gratuit' }}</span>
-          <span class="text-[13px]" :class="game.discount ? 'font-semibold text-hot' : 'text-mute'">{{ game.discount ? `-${game.discount} % en ce moment` : 'Prix du magasin Steam' }}</span>
+          <span class="text-[13px]" :class="game.discount ? 'font-semibold text-hot' : 'text-mute'">{{ game.hours != null ? `Tu y as joué ${fmt.format(game.hours)} h` : game.discount ? `-${game.discount} % en ce moment` : 'Prix du magasin Steam' }}</span>
         </SpotlightCard>
         <div data-stat class="card flex items-center gap-[18px] p-6">
           <Ring v-if="game.metacritic" :key="game.id" :value="game.metacritic" :size="92" :thickness="9" track="rgba(255,255,255,0.12)" inner="var(--color-panel)" :delay="0.9"><span class="font-display text-xl font-extrabold"><CountUp :to="game.metacritic" :duration="1.4" :delay="0.9" /></span></Ring>

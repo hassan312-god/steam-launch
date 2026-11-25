@@ -8,7 +8,8 @@ import CountUp from '../components/bits/CountUp.vue'
 import Magnet from '../components/bits/Magnet.vue'
 import ShinyText from '../components/bits/ShinyText.vue'
 import TrailerVideo from '../components/TrailerVideo.vue'
-import { fmt, homeGames, moods, myGames, specials, tagOf } from '../data/games'
+import { fmt, homeGames, libraryAll, moods, specials, tagOf } from '../data/games'
+import { displayName } from '../composables/useSteam'
 import { play } from '../composables/useLaunch'
 import { theme } from '../composables/useTheme'
 import { prefersReduced } from '../composables/motion'
@@ -17,7 +18,7 @@ const mood = ref('tout')
 const sel = ref(0)
 const games = computed(() => homeGames.filter((g) => mood.value === 'tout' || g.moods.includes(mood.value)))
 const hero = computed(() => games.value[Math.min(sel.value, games.value.length - 1)])
-const hello = (new Date().getHours() >= 18 || new Date().getHours() < 5 ? 'Bonsoir' : 'Bonjour') + ', ' + theme.username
+const hello = computed(() => (new Date().getHours() >= 18 || new Date().getHours() < 5 ? 'Bonsoir' : 'Bonjour') + ', ' + displayName.value)
 const maxDiscount = specials.length ? Math.max(...specials.map((g) => g.discount)) : 0
 
 const vw = ref(typeof window === 'undefined' ? 1440 : window.innerWidth)
@@ -121,8 +122,8 @@ watch(hero, async () => {
       <div class="flex flex-wrap gap-3">
         <RouterLink data-stat to="/bibliotheque" class="glass flex w-[200px] flex-col gap-2.5 rounded-[22px] p-[18px] text-white no-underline backdrop-blur-xl transition-transform hover:-translate-y-1">
           <span class="text-xs font-semibold text-soft">Ma bibliothèque</span>
-          <span class="font-display text-[26px] font-extrabold"><CountUp :to="myGames.length" :duration="1.2" :delay="0.6" /> <span class="text-base">jeu{{ myGames.length > 1 ? 'x' : '' }}</span></span>
-          <span class="text-xs text-mute">{{ myGames.length ? 'Voir ma collection' : 'Ajoute des jeux depuis leur fiche' }}</span>
+          <span class="font-display text-[26px] font-extrabold"><CountUp :to="libraryAll.length" :duration="1.2" :delay="0.6" /> <span class="text-base">jeu{{ libraryAll.length > 1 ? 'x' : '' }}</span></span>
+          <span class="text-xs text-mute">{{ libraryAll.length ? 'Voir ma collection' : 'Ajoute des jeux depuis leur fiche' }}</span>
         </RouterLink>
         <RouterLink data-stat to="/magasin" class="glass flex w-[200px] flex-col gap-2.5 rounded-[22px] p-[18px] text-white no-underline backdrop-blur-xl transition-transform hover:-translate-y-1">
           <span class="text-xs font-semibold text-soft">Promotions Steam</span>

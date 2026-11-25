@@ -1,6 +1,6 @@
 // Catalogue réel : données issues de l'API publique du magasin Steam (voir scripts/fetch-steam.mjs).
 // Aucune donnée inventée : la seule chose propre à l'utilisateur est sa bibliothèque et ses favoris (enregistrés localement).
-import { reactive, computed } from 'vue'
+import { reactive, computed, ref } from 'vue'
 import catalog from './catalog.json'
 import lists from './lists.json'
 
@@ -31,7 +31,11 @@ export const games = catalog.filter((c) => !c.genres.some((x) => SOFT.includes(x
     slug: c.id,
     moods: moodsOf(c),
     num: priceNum(c.price),
+    local: saved.library.includes(c.id), // ajouté à la main
+    steam: false, // possédé sur le compte Steam connecté
     owned: saved.library.includes(c.id),
+    hours: null,
+    last: 0,
     fav: saved.fav.includes(c.id),
     sizeGo: c.size || null,
   }),
@@ -39,9 +43,15 @@ export const games = catalog.filter((c) => !c.genres.some((x) => SOFT.includes(x
 export const byId = Object.fromEntries(games.map((g) => [g.id, g]))
 export const bySlug = byId
 
-// Ordre d'ajout conservé : la bibliothèque est une liste.
+// Ordre d'ajout conservé : la bibliothèque locale est une liste.
 const order = reactive([...saved.library.filter((id) => byId[id])])
-export const myGames = computed(() => order.map((id) => byId[id]))
+// Jeux du compte Steam qui ne sont pas dans notre catalogue.
+export const steamExtra = ref([])
+export const myGames = computed(() => [
+  ...order.map((id) => byId[id]),
+  ...games.filter((g) => g.steam && !g.local).sort((a, b) => b.last - a.last),
+])
+export const libraryAll = computed(() => [...myGames.value, ...steamExtra.value])
 export const storeGames = computed(() => games.filter((g) => !g.owned))
 
 export function saveLibrary() {
@@ -52,11 +62,32 @@ export function saveLibrary() {
   }
 }
 export function toggleOwned(g) {
-  g.owned = !g.owned
-  if (g.owned) order.push(g.id)
+  g.local = !g.local
+  g.owned = g.local || g.steam
+  if (g.local) order.push(g.id)
   else order.splice(order.indexOf(g.id), 1)
   saveLibrary()
 }
+
+// Synchronise la bibliothèque avec les jeux réellement possédés sur Steam.
+export function applySteam(list) {
+  const extra = []
+  const owned = new Map(list.map((x) => [x.appid, x]))
+  games.forEach((g) => {
+    const x = owned.get(g.id)
+    g.steam = !!x
+    g.hours = x ? Math.round(x.minutes / 60) : null
+    g.last = x ? x.last : 0
+    g.owned = g.local || g.steam
+  })
+  list.forEach((x) => {
+    if (byId[x.appid]) return
+    const base = `https://cdn.cloudflare.steamstatic.com/steam/apps/${x.appid}`
+    extra.push({ id: x.appid, title: x.name, cover: `${base}/library_600x900.jpg`, wide: `${base}/header.jpg`, genres: [], cats: [], num: 0, discount: 0, free: false, metacritic: null, fav: false, hours: Math.round(x.minutes / 60), last: x.last, external: true, owned: true })
+  })
+  steamExtra.value = extra
+}
+export const clearSteam = () => applySteam([])
 
 const pick = (ids) => ids.map((i) => byId[i]).filter(Boolean)
 export const topSellers = pick(lists.top)

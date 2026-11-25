@@ -3,10 +3,11 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import gsap from 'gsap'
 import SplitText from '../components/bits/SplitText.vue'
 import CountUp from '../components/bits/CountUp.vue'
-import { accents, byId, myGames, walls } from '../data/games'
+import { accents, byId, libraryAll, walls } from '../data/games'
 import { setAccent, theme } from '../composables/useTheme'
 import Modal from '../components/Modal.vue'
 import { toast } from '../composables/useToast'
+import { displayName, loadSteam, steam } from '../composables/useSteam'
 import { prefersReduced } from '../composables/motion'
 
 const editOpen = ref(false)
@@ -25,7 +26,7 @@ const toggles = [
   ['bgVideo', 'Vidéos en arrière-plan', 'Joue la bande-annonce du jeu en fond de l’accueil et des fiches'],
   ['trailerSound', 'Son des bandes-annonces', 'Active le son par défaut quand une vidéo se lance'],
 ]
-const favCount = computed(() => myGames.value.filter((g) => g.fav).length)
+const favCount = computed(() => libraryAll.value.filter((g) => g.fav).length)
 
 function wallEnter(el, done) {
   if (prefersReduced()) return done()
@@ -60,13 +61,30 @@ onBeforeUnmount(() => ctx?.revert())
         <div class="absolute inset-0 bg-gradient-to-t from-ink/95 to-ink/20 to-75%" />
         <div class="relative flex w-full flex-wrap items-end justify-between gap-5 px-8 py-7">
           <div class="flex items-center gap-5">
-            <span class="flex size-[104px] items-center justify-center rounded-full border-[5px] border-accent bg-avatar font-display text-4xl font-black uppercase">{{ (theme.username || 'J')[0] }}</span>
+            <span class="flex size-[104px] items-center justify-center overflow-hidden rounded-full border-[5px] border-accent bg-avatar font-display text-4xl font-black uppercase"><img v-if="steam.profile?.avatar" :src="steam.profile.avatar" alt="" class="size-full object-cover" /><template v-else>{{ (displayName || 'J')[0] }}</template></span>
             <div class="flex flex-col gap-1.5">
-              <span class="font-display text-[clamp(26px,4vw,38px)] font-black tracking-[-0.02em]"><SplitText :text="theme.username" :delay="0.5" /></span>
-              <span class="text-sm text-[#D7D8E0]"><CountUp :to="myGames.length" :duration="1" :delay="0.6" /> jeu{{ myGames.length > 1 ? 'x' : '' }} · {{ favCount }} favori{{ favCount > 1 ? 's' : '' }}</span>
+              <span class="font-display text-[clamp(26px,4vw,38px)] font-black tracking-[-0.02em]"><SplitText :text="displayName" :key="displayName" :delay="0.5" /></span>
+              <span class="text-sm text-[#D7D8E0]"><CountUp :to="libraryAll.length" :duration="1" :delay="0.6" /> jeu{{ libraryAll.length > 1 ? 'x' : '' }} · {{ favCount }} favori{{ favCount > 1 ? 's' : '' }}</span>
             </div>
           </div>
-          <button type="button" class="h-[46px] rounded-full border border-white/20 bg-ink/55 px-[22px] text-sm font-bold text-white transition-colors hover:bg-white/10" @click="openEdit">Modifier le profil</button>
+          <button v-if="steam.status !== 'in'" type="button" class="h-[46px] rounded-full border border-white/20 bg-ink/55 px-[22px] text-sm font-bold text-white transition-colors hover:bg-white/10" @click="openEdit">Modifier le profil</button>
+        </div>
+      </section>
+
+      <section data-panel class="card flex flex-wrap items-center justify-between gap-5 p-7" aria-labelledby="steam-h">
+        <div class="flex min-w-0 flex-col gap-1">
+          <h2 id="steam-h" class="m-0 font-display text-[22px] font-black">Compte Steam</h2>
+          <p v-if="steam.status === 'in'" class="m-0 text-sm text-soft">Connecté en tant que <strong class="text-white">{{ steam.profile.name }}</strong> · {{ steam.count }} jeu{{ steam.count > 1 ? 'x' : '' }} synchronisé{{ steam.count > 1 ? 's' : '' }}<span v-if="!steam.gamesVisible" class="text-amber"> · détails de jeu privés</span></p>
+          <p v-else-if="steam.status === 'not_configured'" class="m-0 text-sm text-soft">La connexion Steam n’est pas encore configurée sur ce site.</p>
+          <p v-else-if="steam.status === 'unavailable'" class="m-0 text-sm text-soft">Connexion Steam indisponible ici (disponible sur le site en ligne).</p>
+          <p v-else class="m-0 text-sm text-soft">Retrouve tes vrais jeux et tes heures de jeu. Ton profil et tes détails de jeu doivent être publics.</p>
+        </div>
+        <div class="flex flex-wrap gap-2.5">
+          <template v-if="steam.status === 'in'">
+            <button type="button" class="h-11 rounded-full border border-white/20 bg-transparent px-5 text-sm font-semibold text-white hover:bg-white/10" @click="loadSteam().then(() => toast('Bibliothèque Steam resynchronisée'))">Resynchroniser</button>
+            <a href="/api/steam/logout" class="flex h-11 items-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white no-underline hover:bg-white/10">Se déconnecter</a>
+          </template>
+          <a v-else-if="steam.status === 'out'" href="/api/steam/login" class="flex h-11 items-center rounded-full bg-accent px-6 text-sm font-extrabold text-ink no-underline">Se connecter avec Steam</a>
         </div>
       </section>
 
