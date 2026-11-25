@@ -2,9 +2,8 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import gsap from 'gsap'
 import SplitText from '../components/bits/SplitText.vue'
-import Ring from '../components/bits/Ring.vue'
 import CountUp from '../components/bits/CountUp.vue'
-import { accents, byId, walls } from '../data/games'
+import { accents, byId, myGames, walls } from '../data/games'
 import { setAccent, theme } from '../composables/useTheme'
 import Modal from '../components/Modal.vue'
 import { toast } from '../composables/useToast'
@@ -23,11 +22,10 @@ function saveName() {
 const densities = ['Compact', 'Confort', 'Géant']
 const wall = computed(() => byId[theme.wall].wide)
 const toggles = [
-  ['startup', 'Lancer G.A au démarrage', 'Directement sur l’écran de chargement'],
-  ['console', 'Mode console plein écran', 'Navigation à la manette, comme sur une PS5'],
-  ['music', 'Musique du jeu sélectionné', 'Ambiance sonore sur l’accueil'],
-  ['activity', 'Montrer mon activité', 'Tes amis voient à quoi tu joues'],
+  ['bgVideo', 'Vidéos en arrière-plan', 'Joue la bande-annonce du jeu en fond de l’accueil et des fiches'],
+  ['trailerSound', 'Son des bandes-annonces', 'Active le son par défaut quand une vidéo se lance'],
 ]
+const favCount = computed(() => myGames.value.filter((g) => g.fav).length)
 
 function wallEnter(el, done) {
   if (prefersReduced()) return done()
@@ -62,12 +60,10 @@ onBeforeUnmount(() => ctx?.revert())
         <div class="absolute inset-0 bg-gradient-to-t from-ink/95 to-ink/20 to-75%" />
         <div class="relative flex w-full flex-wrap items-end justify-between gap-5 px-8 py-7">
           <div class="flex items-center gap-5">
-            <Ring :value="72" :size="104" :thickness="5" track="rgba(255,255,255,0.18)" inner="var(--color-ink)">
-              <span class="m-1 flex size-[calc(100%-8px)] items-center justify-center rounded-full bg-avatar font-display text-4xl font-black">H</span>
-            </Ring>
+            <span class="flex size-[104px] items-center justify-center rounded-full border-[5px] border-accent bg-avatar font-display text-4xl font-black uppercase">{{ (theme.username || 'J')[0] }}</span>
             <div class="flex flex-col gap-1.5">
               <span class="font-display text-[clamp(26px,4vw,38px)] font-black tracking-[-0.02em]"><SplitText :text="theme.username" :delay="0.5" /></span>
-              <span class="text-sm text-[#D7D8E0]">Niveau <CountUp :to="47" :duration="1.4" :delay="0.6" /> · 412 h de jeu · Dakar</span>
+              <span class="text-sm text-[#D7D8E0]"><CountUp :to="myGames.length" :duration="1" :delay="0.6" /> jeu{{ myGames.length > 1 ? 'x' : '' }} · {{ favCount }} favori{{ favCount > 1 ? 's' : '' }}</span>
             </div>
           </div>
           <button type="button" class="h-[46px] rounded-full border border-white/20 bg-ink/55 px-[22px] text-sm font-bold text-white transition-colors hover:bg-white/10" @click="openEdit">Modifier le profil</button>
@@ -128,18 +124,10 @@ onBeforeUnmount(() => ctx?.revert())
         </section>
 
         <section data-panel class="card flex min-w-0 flex-[1_1_440px] flex-col p-7" aria-labelledby="xp-h">
-          <h2 id="xp-h" class="m-0 mb-2 font-display text-[26px] font-black">Ton expérience</h2>
-          <div v-for="[key, label, hint] in toggles" :key="key" data-row class="flex items-center justify-between gap-5 border-b border-white/[0.07] py-4">
+          <h2 id="xp-h" class="m-0 mb-2 font-display text-[26px] font-black">Affichage</h2>
+          <div v-for="[key, label, hint] in toggles" :key="key" data-row class="flex items-center justify-between gap-5 border-b border-white/[0.07] py-4 last:border-b-0">
             <div class="flex flex-col gap-[3px]"><label :for="key" class="text-[15px] font-semibold">{{ label }}</label><span class="text-[13px] text-mute">{{ hint }}</span></div>
             <input :id="key" v-model="theme[key]" type="checkbox" class="nv-sw" />
-          </div>
-          <div data-row class="flex items-center justify-between gap-5 border-b border-white/[0.07] py-4">
-            <div class="flex flex-col gap-[3px]"><label for="lang" class="text-[15px] font-semibold">Langue</label><span class="text-[13px] text-mute">Interface et sous-titres</span></div>
-            <select id="lang" v-model="theme.lang" class="h-11 min-w-[170px] rounded-full border border-white/[0.14] bg-ink px-4 text-sm text-white"><option>Français</option><option>Wolof</option><option>English</option></select>
-          </div>
-          <div data-row class="flex items-center justify-between gap-5 py-4">
-            <div class="flex flex-col gap-[3px]"><label for="bw" class="text-[15px] font-semibold">Limite de téléchargement</label><span class="text-[13px] text-mute">{{ theme.bandwidth }} Mo/s · la nuit : illimité</span></div>
-            <input id="bw" v-model.number="theme.bandwidth" type="range" min="0" max="100" class="w-[180px] accent-[var(--accent)]" />
           </div>
         </section>
       </div>

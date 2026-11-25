@@ -3,7 +3,7 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import gsap from 'gsap'
 import Logo from './Logo.vue'
-import Ring from './bits/Ring.vue'
+import { theme } from '../composables/useTheme'
 import SearchOverlay from './SearchOverlay.vue'
 import NotificationsPanel from './NotificationsPanel.vue'
 import { prefersReduced } from '../composables/motion'
@@ -13,7 +13,6 @@ const links = [
   { to: '/accueil', label: 'Accueil' },
   { to: '/magasin', label: 'Magasin' },
   { to: '/bibliotheque', label: 'Bibliothèque' },
-  { to: '/amis', label: 'Amis' },
   { to: '/parametres', label: 'Paramètres' },
 ]
 
@@ -102,9 +101,7 @@ watch(() => route.path, () => {
         </button>
         <NotificationsPanel :open="notifOpen" :unread="unread" @close="notifOpen = false" @read="unread = false" />
       </div>
-      <RouterLink to="/parametres" aria-label="Mon profil" class="no-underline transition-transform hover:scale-105">
-        <Ring :value="72" :size="48" :thickness="3" inner="var(--color-avatar)"><span class="font-display text-[15px] font-extrabold text-white">H</span></Ring>
-      </RouterLink>
+      <RouterLink to="/parametres" aria-label="Mon profil" class="flex size-12 items-center justify-center rounded-full border-[3px] border-accent bg-avatar font-display text-[15px] font-extrabold uppercase text-white no-underline transition-transform hover:scale-105">{{ (theme.username || 'J')[0] }}</RouterLink>
     </div>
   </header>
   <SearchOverlay :open="searchOpen" @close="searchOpen = false" />

@@ -3,7 +3,6 @@ import { computed } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import gsap from 'gsap'
 import AppHeader from './components/AppHeader.vue'
-import LaunchOverlay from './components/LaunchOverlay.vue'
 import Toaster from './components/Toaster.vue'
 import { prefersReduced } from './composables/motion'
 
@@ -29,7 +28,6 @@ function leave(el, done) {
         <component :is="Component" :key="r.path" />
       </Transition>
     </RouterView>
-    <LaunchOverlay />
     <Toaster />
   </div>
 </template>
