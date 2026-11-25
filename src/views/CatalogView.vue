@@ -14,6 +14,7 @@ import { prefersReduced } from '../composables/motion'
 const TAGS = [['Action', 19], ['Aventure', 21], ['RPG', 122], ['Indépendant', 492], ['Simulation', 599], ['Stratégie', 9], ['Course', 699], ['Sport', 701], ['FPS', 1663], ['Horreur', 1667], ['Puzzle', 1664], ['Survie', 1662], ['Monde ouvert', 1695], ['Multijoueur', 3859], ['Coopération', 1685], ['Anime', 4085]]
 const PRICES = [['', 'Tous les prix'], ['free', 'Gratuits'], ['sale', 'En promotion']]
 
+const moreTags = ref(false)
 const mode = ref('popular')
 const tag = ref(null)
 const price = ref('')
@@ -113,9 +114,10 @@ const list = computed(() => (showSearch.value ? found.value : items.value))
           <button type="button" :aria-pressed="mode === 'all'" class="h-11 rounded-full border px-5 text-sm font-bold transition-colors" :class="mode === 'all' ? 'border-accent bg-accent text-ink' : 'border-white/[0.14] bg-panel/80 text-white hover:border-white/40'" @click="mode = 'all'">Tous les jeux</button>
         </div>
         <template v-if="true">
-          <div class="no-scrollbar flex gap-2 overflow-x-auto py-1" role="group" aria-label="Genre">
+          <div class="flex flex-wrap gap-2" role="group" aria-label="Genre">
             <button type="button" :aria-pressed="tag === null" class="h-10 shrink-0 rounded-full border px-4 text-sm font-semibold transition-colors" :class="tag === null ? 'border-white bg-white text-ink' : 'border-white/[0.14] bg-panel/80 text-white hover:border-white/40'" @click="tag = null">Tous les genres</button>
-            <button v-for="[label, id] in TAGS" :key="id" type="button" :aria-pressed="tag === id" class="h-10 shrink-0 rounded-full border px-4 text-sm font-semibold transition-colors" :class="tag === id ? 'border-white bg-white text-ink' : 'border-white/[0.14] bg-panel/80 text-white hover:border-white/40'" @click="tag = tag === id ? null : id">{{ label }}</button>
+            <button v-for="[label, id] in (moreTags ? TAGS : TAGS.slice(0, 7))" :key="id" type="button" :aria-pressed="tag === id" class="h-10 shrink-0 rounded-full border px-4 text-sm font-semibold transition-colors" :class="tag === id ? 'border-white bg-white text-ink' : 'border-white/[0.14] bg-panel/80 text-white hover:border-white/40'" @click="tag = tag === id ? null : id">{{ label }}</button>
+            <button type="button" :aria-expanded="moreTags" class="h-10 shrink-0 rounded-full border border-dashed border-white/25 bg-transparent px-4 text-sm font-semibold text-soft transition-colors hover:border-white/50 hover:text-white" @click="moreTags = !moreTags">{{ moreTags ? 'Moins' : `+ ${TAGS.length - 7} genres` }}</button>
           </div>
           <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Prix">
             <button v-for="[v, label] in PRICES" :key="v" type="button" :aria-pressed="price === v" class="h-10 rounded-full border px-4 text-sm font-semibold transition-colors" :class="price === v ? 'border-accent bg-accent/15 text-accent' : 'border-white/[0.14] bg-panel/80 text-white hover:border-white/40'" @click="price = v">{{ label }}</button>
