@@ -2,7 +2,8 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import gsap from 'gsap'
-import { games, myGames, topSellers } from '../data/games'
+import { games, myGames, topSellers, lookup } from '../data/games'
+import { useSteamSearch } from '../composables/useSteamSearch'
 import { prefersReduced } from '../composables/motion'
 
 const props = defineProps({ open: Boolean })
@@ -13,11 +14,18 @@ const input = ref(null)
 const panel = ref(null)
 const active = ref(0)
 
-const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+const { results: remote, loading, error } = useSteamSearch(q)
+
+// Résultats immédiats (catalogue du launcher) puis tout le catalogue Steam, sans doublon.
+const toItem = (g) => ({ id: g.id, title: g.title, header: g.cover, cover: g.cover, price: g.price, owned: g.owned, sub: g.genres.slice(0, 3).join(' · ') })
 const results = computed(() => {
   const t = norm(q.value.trim())
-  const list = t ? games.filter((g) => norm(g.title + ' ' + g.genres.join(' ') + ' ' + g.studio).includes(t)) : (myGames.value.length ? myGames.value : topSellers)
-  return list.slice(0, 8)
+  if (!t) return (myGames.value.length ? myGames.value : topSellers).slice(0, 8).map(toItem)
+  const local = games.filter((g) => norm(g.title + ' ' + g.genres.join(' ') + ' ' + g.studio).includes(t)).slice(0, 5).map(toItem)
+  const seen = new Set(local.map((x) => x.id))
+  const more = remote.value.filter((r) => !seen.has(r.id)).map((r) => ({ id: r.id, title: r.title, cover: r.cover, header: r.header, price: r.price, owned: !!lookup(r.id)?.owned, sub: r.year }))
+  return [...local, ...more].slice(0, 12)
 })
 watch(q, () => (active.value = 0))
 
@@ -56,12 +64,15 @@ watch(() => props.open, async (o) => {
         <kbd class="rounded-md border border-white/10 px-2 py-1 text-xs text-mute">Échap</kbd>
       </div>
       <ul class="m-0 flex max-h-[56vh] list-none flex-col gap-1 overflow-y-auto p-2 no-scrollbar">
-        <li v-if="!results.length" class="px-4 py-8 text-center text-mute">Aucun jeu ne correspond à « {{ q }} ».</li>
+        <li v-if="!results.length && loading" class="px-4 py-8 text-center text-mute">Recherche dans tout le catalogue Steam…</li>
+        <li v-else-if="!results.length && error" class="px-4 py-8 text-center text-mute">La recherche Steam est indisponible pour le moment.</li>
+        <li v-else-if="!results.length" class="px-4 py-8 text-center text-mute">Aucun jeu ne correspond à « {{ q }} ».</li>
         <li v-else-if="!q" class="px-4 pb-1 pt-2 text-xs font-bold tracking-[0.14em] text-mute">{{ myGames.length ? 'DANS TA BIBLIOTHÈQUE' : 'MEILLEURES VENTES' }}</li>
+        <li v-if="q && loading && results.length" class="px-4 pb-1 pt-2 text-xs font-bold tracking-[0.14em] text-mute">RECHERCHE SUR STEAM…</li>
         <li v-for="(g, i) in results" :key="g.id" data-res>
           <button type="button" class="flex w-full items-center gap-4 rounded-2xl border-0 p-2.5 text-left text-white transition-colors" :class="i === active ? 'bg-white/10' : 'bg-transparent hover:bg-white/5'" @mouseenter="active = i" @click="go(g)">
-            <img :src="g.cover" alt="" class="h-[72px] w-12 shrink-0 rounded-lg object-cover" />
-            <span class="flex min-w-0 flex-1 flex-col gap-0.5"><strong class="truncate text-[15px]">{{ g.title }}</strong><span class="truncate text-xs text-mute">{{ g.genres.slice(0, 3).join(' · ') }}</span></span>
+            <img :src="g.cover" alt="" class="h-[72px] w-12 shrink-0 rounded-lg bg-panel-2 object-cover" @error="$event.target.src = g.header" />
+            <span class="flex min-w-0 flex-1 flex-col gap-0.5"><strong class="truncate text-[15px]">{{ g.title }}</strong><span class="truncate text-xs text-mute">{{ g.sub }}</span></span>
             <span class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-extrabold tracking-[0.06em] text-ink" :class="g.owned ? 'bg-accent' : 'bg-soft'">{{ g.owned ? 'BIBLIOTHÈQUE' : g.price || 'GRATUIT' }}</span>
           </button>
         </li>

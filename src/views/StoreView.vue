@@ -6,12 +6,21 @@ import PageBackdrop from '../components/PageBackdrop.vue'
 import SplitText from '../components/bits/SplitText.vue'
 import SpotlightCard from '../components/bits/SpotlightCard.vue'
 import TiltedCard from '../components/bits/TiltedCard.vue'
-import { fmt, freeGames, games, genres, mostDiscounted, newReleases, specials, topRated, topSellers } from '../data/games'
+import { fmt, freeGames, games, genres, lookup, mostDiscounted, newReleases, specials, topRated, topSellers } from '../data/games'
+import { useSteamSearch } from '../composables/useSteamSearch'
 import { prefersReduced } from '../composables/motion'
 
 const q = ref('')
 const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-const found = computed(() => (q.value ? games.filter((g) => norm(g.title + ' ' + g.genres.join(' ') + ' ' + g.studio).includes(norm(q.value))) : []))
+const { results: remote, loading: searching, error: searchError } = useSteamSearch(q)
+// Catalogue du launcher d'abord (instantané), puis tout le catalogue Steam, sans doublon.
+const found = computed(() => {
+  if (!q.value) return []
+  const t = norm(q.value)
+  const local = games.filter((g) => norm(g.title + ' ' + g.genres.join(' ') + ' ' + g.studio).includes(t)).map((g) => ({ id: g.id, title: g.title, cover: g.cover, header: g.wide, price: g.price || 'Gratuit', discount: g.discount }))
+  const seen = new Set(local.map((x) => x.id))
+  return [...local, ...remote.value.filter((r) => !seen.has(r.id))]
+})
 
 // Tuiles de la une : tout vient de Steam (meilleure vente, plus grosse promo, mieux noté, gratuit).
 const featured = topSellers[0] ?? games[0]
@@ -67,16 +76,17 @@ onBeforeUnmount(() => ctx?.revert())
         </div>
         <div class="flex w-[360px] max-w-full flex-col gap-1.5">
           <label for="sq" class="text-xs font-semibold text-mute">Rechercher dans le magasin</label>
-          <input id="sq" v-model="q" type="search" placeholder="Un jeu, un genre, un studio…" class="h-[50px] rounded-full border border-white/[0.14] bg-panel/80 px-5 text-[15px] text-white placeholder:text-mute focus:border-accent focus:outline-none" />
+          <input id="sq" v-model="q" type="search" placeholder="Cherche dans tous les jeux Steam…" class="h-[50px] rounded-full border border-white/[0.14] bg-panel/80 px-5 text-[15px] text-white placeholder:text-mute focus:border-accent focus:outline-none" />
         </div>
       </div>
 
       <!-- Résultats de recherche -->
       <section v-if="q" class="flex flex-col gap-4" aria-live="polite">
-        <h2 class="m-0 font-display text-xl font-extrabold">{{ found.length }} résultat{{ found.length > 1 ? 's' : '' }} pour « {{ q }} »</h2>
+        <h2 class="m-0 font-display text-xl font-extrabold">{{ found.length }} résultat{{ found.length > 1 ? 's' : '' }} pour « {{ q }} » <span v-if="searching" class="text-base font-semibold text-mute">· recherche sur tout Steam…</span></h2>
+        <p v-if="searchError" class="m-0 text-sm text-mute" role="alert">La recherche Steam est indisponible pour le moment : seuls les jeux du launcher sont affichés.</p>
         <div class="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-x-5 gap-y-7">
           <RouterLink v-for="g in found" :key="g.id" :to="'/jeu/' + g.id" class="group flex flex-col gap-2.5 text-white no-underline">
-            <div class="aspect-[2/3] overflow-hidden rounded-[20px] shadow-[0_18px_40px_rgba(0,0,0,0.5)]"><img :src="g.cover" alt="" loading="lazy" class="block size-full object-cover transition-transform duration-700 group-hover:scale-110" /></div>
+            <div class="relative aspect-[2/3] overflow-hidden rounded-[20px] bg-panel shadow-[0_18px_40px_rgba(0,0,0,0.5)]"><img :src="g.cover" alt="" loading="lazy" class="block size-full object-cover transition-transform duration-700 group-hover:scale-110" @error="$event.target.src = g.header" /><span v-if="g.discount" class="absolute left-2.5 top-2.5 rounded-full bg-hot px-[9px] py-[5px] text-[11px] font-extrabold text-ink">-{{ g.discount }} %</span></div>
             <span class="text-[15px] font-bold">{{ g.title }}</span>
             <span class="-mt-1.5 text-xs text-mute">{{ g.price || 'Gratuit' }}</span>
           </RouterLink>
