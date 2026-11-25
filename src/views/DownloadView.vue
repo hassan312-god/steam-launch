@@ -7,7 +7,7 @@ import ShinyText from '../components/bits/ShinyText.vue'
 import { desktop } from '../composables/useDesktop'
 import { prefersReduced } from '../composables/motion'
 
-// L'installateur est publié par GitHub Actions dans la Release publique « desktop-latest » du dépôt.
+// La dernière Release publique du dépôt contient l'installateur (publié par GitHub Actions).
 const REPO = 'hassan312-god/steam-launch'
 const info = ref(null)
 const loaded = ref(false)
@@ -24,11 +24,11 @@ const features = [
 
 onMounted(async () => {
   try {
-    const r = await fetch(`https://api.github.com/repos/${REPO}/releases/tags/desktop-latest`)
+    const r = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`)
     if (r.ok) {
       const rel = await r.json()
       const exe = rel.assets?.find((x) => x.name === 'GA-Launcher-Setup.exe')
-      if (exe) info.value = { url: exe.browser_download_url, size: exe.size, date: exe.updated_at, version: rel.tag_name === 'desktop-latest' ? 'actuelle' : rel.tag_name, sha256: (exe.digest || '').replace('sha256:', '') }
+      if (exe) info.value = { url: exe.browser_download_url, size: exe.size, date: exe.updated_at, version: rel.tag_name.replace(/^v/, ''), sha256: (exe.digest || '').replace('sha256:', '') }
     }
   } catch { /* pas encore publié ou hors ligne */ }
   loaded.value = true

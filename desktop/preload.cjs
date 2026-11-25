@@ -9,6 +9,17 @@ contextBridge.exposeInMainWorld('launcher', {
   play: (id) => ipcRenderer.invoke('steam:play', String(id)),
   uninstall: (id) => ipcRenderer.invoke('steam:uninstall', String(id)),
   showFolder: (id) => ipcRenderer.invoke('steam:folder', String(id)),
+  version: () => ipcRenderer.invoke('app:version'),
+  update: {
+    get: () => ipcRenderer.invoke('updater:get'),
+    check: () => ipcRenderer.invoke('updater:check'),
+    install: () => ipcRenderer.invoke('updater:install'),
+    onState: (cb) => {
+      const fn = (_e, st) => cb(st)
+      ipcRenderer.on('updater:state', fn)
+      return () => ipcRenderer.removeListener('updater:state', fn)
+    },
+  },
   notify: (title, body, route) => ipcRenderer.invoke('notify', { title, body, route }),
   getSettings: () => ipcRenderer.invoke('settings:get'),
   setSettings: (patch) => ipcRenderer.invoke('settings:set', patch),

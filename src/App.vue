@@ -4,6 +4,7 @@ import { RouterView, useRoute, useRouter } from 'vue-router'
 import gsap from 'gsap'
 import AppHeader from './components/AppHeader.vue'
 import Toaster from './components/Toaster.vue'
+import UpdateBanner from './components/UpdateBanner.vue'
 import { prefersReduced } from './composables/motion'
 import { loadSteam, steam } from './composables/useSteam'
 import { desktop, notify, startDesktop } from './composables/useDesktop'
@@ -63,5 +64,6 @@ function leave(el, done) {
       </Transition>
     </RouterView>
     <Toaster />
+    <UpdateBanner />
   </div>
 </template>

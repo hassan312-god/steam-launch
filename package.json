@@ -1,7 +1,7 @@
 {
   "name": "steam-launch",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -55,7 +55,8 @@
     },
     "mac": {
       "target": [
-        "dmg"
+        "dmg",
+        "zip"
       ],
       "category": "public.app-category.games",
       "icon": "desktop/icon.png",
@@ -68,6 +69,17 @@
       "category": "Game",
       "icon": "desktop/icon.png",
       "artifactName": "GA-Launcher-linux.${ext}"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "hassan312-god",
+        "repo": "steam-launch",
+        "releaseType": "release"
+      }
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11"
   }
 }

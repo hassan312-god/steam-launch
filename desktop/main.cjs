@@ -3,6 +3,7 @@
 // sur cet ordinateur : jeux installés, téléchargements en cours, lancement, installation, désinstallation.
 const { app, BrowserWindow, ipcMain, shell, Menu, Tray, Notification, nativeImage } = require('electron')
 const fs = require('node:fs')
+const { autoUpdater } = require('electron-updater')
 const path = require('node:path')
 const { scan } = require('./steam-local.cjs')
 
@@ -134,11 +135,59 @@ ipcMain.handle('steam:folder', (_e, id) => {
   return !!a
 })
 
+// --- Mise à jour automatique (Releases GitHub) --------------------------------------------------------
+// L'application vérifie au démarrage puis toutes les 4 h, télécharge en arrière-plan, et propose de redémarrer pour installer.
+// Windows et Linux (AppImage) : automatique. macOS exige une application signée : la mise à jour y reste manuelle.
+let updateState = { status: 'idle', version: null, percent: 0, error: null }
+const setUpdate = (patch) => {
+  updateState = { ...updateState, ...patch }
+  if (win && !win.isDestroyed()) win.webContents.send('updater:state', updateState)
+}
+function toast(title, body) {
+  if (settings.notifications && Notification.isSupported()) new Notification({ title, body, icon: path.join(__dirname, 'icon.png') }).show()
+}
+function setupUpdater() {
+  if (!app.isPackaged) return // en développement : pas de mise à jour
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = true
+  autoUpdater.on('checking-for-update', () => setUpdate({ status: 'checking', error: null }))
+  autoUpdater.on('update-not-available', () => setUpdate({ status: 'latest' }))
+  autoUpdater.on('update-available', (i) => {
+    setUpdate({ status: 'downloading', version: i.version, percent: 0 })
+    toast('Mise à jour disponible', `La version ${i.version} se télécharge en arrière-plan.`)
+  })
+  autoUpdater.on('download-progress', (p) => setUpdate({ status: 'downloading', percent: Math.round(p.percent) }))
+  autoUpdater.on('update-downloaded', (i) => {
+    setUpdate({ status: 'ready', version: i.version, percent: 100 })
+    toast('Mise à jour prête', `Redémarre G.A Launcher pour installer la version ${i.version}.`)
+  })
+  autoUpdater.on('error', (e) => setUpdate({ status: 'error', error: String(e?.message || e).slice(0, 200) }))
+  const check = () => autoUpdater.checkForUpdates().catch(() => {})
+  setTimeout(check, 8000)
+  setInterval(check, 4 * 60 * 60 * 1000)
+}
+ipcMain.handle('app:version', () => app.getVersion())
+ipcMain.handle('updater:get', () => updateState)
+ipcMain.handle('updater:check', () => {
+  if (!app.isPackaged) {
+    setUpdate({ status: 'latest' })
+    return updateState
+  }
+  return autoUpdater.checkForUpdates().then(() => updateState).catch(() => updateState)
+})
+ipcMain.handle('updater:install', () => {
+  if (updateState.status !== 'ready') return false
+  quitting = true
+  autoUpdater.quitAndInstall(false, true)
+  return true
+})
+
 app.on('before-quit', () => (quitting = true))
 app.whenReady().then(() => {
   loadSettings()
   createWindow()
   createTray()
+  setupUpdater()
   startWatching()
   app.on('activate', () => BrowserWindow.getAllWindows().length === 0 && createWindow())
 })
