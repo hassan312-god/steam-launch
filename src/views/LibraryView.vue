@@ -7,7 +7,7 @@ import SplitText from '../components/bits/SplitText.vue'
 import CountUp from '../components/bits/CountUp.vue'
 import SpotlightCard from '../components/bits/SpotlightCard.vue'
 import { fmt, homeGames, libraryAll } from '../data/games'
-import { displayName, steam } from '../composables/useSteam'
+import { connectSteam, displayName, steam } from '../composables/useSteam'
 import { toggleFav } from '../composables/useLaunch'
 import { theme } from '../composables/useTheme'
 import { prefersReduced } from '../composables/motion'
@@ -94,7 +94,7 @@ function leave(el, done) {
           </RouterLink>
         </div>
         <div class="flex flex-wrap gap-3">
-          <a v-if="steam.status !== 'in'" href="/api/steam/login" class="flex h-[52px] items-center rounded-full bg-accent px-7 text-[15px] font-extrabold text-ink no-underline">Se connecter avec Steam</a>
+          <a v-if="steam.status !== 'in'" href="/api/steam/login" @click.prevent="connectSteam" class="flex h-[52px] items-center rounded-full bg-accent px-7 text-[15px] font-extrabold text-ink no-underline">Se connecter avec Steam</a>
           <RouterLink to="/magasin" class="flex h-[52px] items-center rounded-full border border-white/20 px-7 text-[15px] font-bold text-white no-underline hover:bg-white/10">Parcourir le magasin</RouterLink>
         </div>
       </section>

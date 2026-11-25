@@ -7,7 +7,7 @@ import { accents, byId, libraryAll, walls } from '../data/games'
 import { setAccent, theme } from '../composables/useTheme'
 import Modal from '../components/Modal.vue'
 import { toast } from '../composables/useToast'
-import { displayName, loadSteam, steam } from '../composables/useSteam'
+import { connectSteam, disconnectSteam, displayName, loadSteam, steam } from '../composables/useSteam'
 import { prefersReduced } from '../composables/motion'
 
 const editOpen = ref(false)
@@ -82,9 +82,9 @@ onBeforeUnmount(() => ctx?.revert())
         <div class="flex flex-wrap gap-2.5">
           <template v-if="steam.status === 'in'">
             <button type="button" class="h-11 rounded-full border border-white/20 bg-transparent px-5 text-sm font-semibold text-white hover:bg-white/10" @click="loadSteam().then(() => toast('Bibliothèque Steam resynchronisée'))">Resynchroniser</button>
-            <a href="/api/steam/logout" class="flex h-11 items-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white no-underline hover:bg-white/10">Se déconnecter</a>
+            <button type="button" class="h-11 rounded-full border border-white/20 bg-transparent px-5 text-sm font-semibold text-white hover:bg-white/10" @click="disconnectSteam">Se déconnecter</button>
           </template>
-          <a v-else-if="steam.status === 'out'" href="/api/steam/login" class="flex h-11 items-center rounded-full bg-accent px-6 text-sm font-extrabold text-ink no-underline">Se connecter avec Steam</a>
+          <a v-else-if="steam.status === 'out'" href="/api/steam/login" @click.prevent="connectSteam" class="flex h-11 items-center rounded-full bg-accent px-6 text-sm font-extrabold text-ink no-underline">Se connecter avec Steam</a>
         </div>
       </section>
 
