@@ -5,7 +5,8 @@ const { app, BrowserWindow, ipcMain, shell, Menu, Tray, Notification, nativeImag
 const fs = require('node:fs')
 const { autoUpdater } = require('electron-updater')
 const path = require('node:path')
-const { scan } = require('./steam-local.cjs')
+const { scan, libraries } = require('./steam-local.cjs')
+const { SteamCmd } = require('./steamcmd.cjs')
 
 const URL_APP = process.env.GA_URL || 'https://ga-launcher-hassan.netlify.app'
 const ORIGIN = new URL(URL_APP).origin
@@ -136,6 +137,26 @@ ipcMain.handle('steam:folder', (_e, id) => {
   return !!a
 })
 
+// --- Téléchargements dans le launcher (SteamCMD) --------------------------------------------------------------
+let cmd
+const getCmd = () => {
+  if (cmd) return cmd
+  cmd = new SteamCmd({ dir: path.join(app.getPath('userData'), 'steamcmd'), libraries })
+  cmd.on('state', (st) => win && !win.isDestroyed() && win.webContents.send('steamcmd:state', st))
+  cmd.on('done', (j) => toast('Téléchargement terminé', `${j.name} est installé et prêt à jouer.`))
+  cmd.on('failed', (j) => toast('Téléchargement interrompu', `${j.name} : ${j.message}`))
+  return cmd
+}
+ipcMain.handle('steamcmd:state', () => getCmd().state())
+ipcMain.handle('steamcmd:login', (_e, { user, password } = {}) => getCmd().login(String(user || ''), String(password || '')))
+ipcMain.handle('steamcmd:code', (_e, code) => getCmd().submitCode(String(code || '')))
+ipcMain.handle('steamcmd:cancel-login', () => getCmd().cancelLogin())
+ipcMain.handle('steamcmd:logout', () => getCmd().logout())
+ipcMain.handle('steamcmd:install', (_e, { appid, name } = {}) => getCmd().install(check(appid), String(name || '')))
+ipcMain.handle('steamcmd:pause', (_e, id) => getCmd().pause(check(id)))
+ipcMain.handle('steamcmd:resume', (_e, id) => getCmd().resume(check(id)))
+ipcMain.handle('steamcmd:cancel', (_e, id) => getCmd().cancel(check(id)))
+
 // --- Mise à jour automatique (Releases GitHub) --------------------------------------------------------
 // L'application vérifie au démarrage puis toutes les 4 h, télécharge en arrière-plan, et propose de redémarrer pour installer.
 // Windows et Linux (AppImage) : automatique. macOS exige une application signée : la mise à jour y reste manuelle.
@@ -183,7 +204,7 @@ ipcMain.handle('updater:install', () => {
   return true
 })
 
-app.on('before-quit', () => (quitting = true))
+app.on('before-quit', () => ((quitting = true), cmd?.shutdown()))
 app.whenReady().then(() => {
   loadSettings()
   createWindow()

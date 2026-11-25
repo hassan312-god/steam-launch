@@ -4,7 +4,7 @@ import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import PageBackdrop from '../components/PageBackdrop.vue'
 import SplitText from '../components/bits/SplitText.vue'
-import { desktop, downloads, fmtBytes, fmtEta, fmtSpeed } from '../composables/useDesktop'
+import { cmd, desktop, downloads, fmtBytes, fmtEta, fmtSpeed } from '../composables/useDesktop'
 import { play } from '../composables/useLaunch'
 
 const active = computed(() => downloads())
@@ -17,6 +17,7 @@ function onErr(e, id) {
   else img.remove()
 }
 const pct = (a) => Math.round(a.progress * 100)
+const stateOf = (a) => (a.failed ? 'Erreur' : a.queued ? 'En attente' : a.paused ? (a.job ? 'En pause' : 'En pause dans Steam') : a.phase === 'verifying' ? `Vérification des fichiers ${Math.round((a.verify || 0) * 100)} %` : a.phase === 'finishing' ? 'Finalisation…' : a.speed > 0 ? 'Téléchargement' : 'Démarrage…')
 </script>
 
 <template>
@@ -41,9 +42,15 @@ const pct = (a) => Math.round(a.progress * 100)
       </section>
 
       <template v-else>
-        <p v-if="!desktop.steamFound" class="m-0 rounded-3xl border border-dashed border-white/20 p-8 text-soft">Steam est introuvable sur cet ordinateur : installe le client Steam et connecte-toi dedans.</p>
+        <div v-if="desktop.canCmd" class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/[0.07] bg-panel px-5 py-4">
+          <span v-if="desktop.cmd.account" class="text-sm text-soft">Téléchargements du launcher · compte <strong class="text-white">{{ desktop.cmd.account }}</strong></span>
+          <span v-else class="text-sm text-soft">Connecte ton compte Steam pour télécharger directement dans le launcher, avec pause et reprise.</span>
+          <button v-if="desktop.cmd.account" type="button" class="h-10 rounded-full border border-white/20 bg-transparent px-4 text-sm font-semibold text-white hover:bg-white/10" @click="cmd.logout()">Se déconnecter</button>
+          <button v-else type="button" class="h-10 rounded-full bg-accent px-5 text-sm font-extrabold text-ink" @click="desktop.loginAsk = { game: null }">Connecter mon compte</button>
+        </div>
+        <p v-if="!desktop.steamFound && !desktop.canCmd" class="m-0 rounded-3xl border border-dashed border-white/20 p-8 text-soft">Steam est introuvable sur cet ordinateur : installe le client Steam et connecte-toi dedans.</p>
 
-        <section v-else class="flex flex-col gap-4" aria-labelledby="dl-h">
+        <section v-if="desktop.steamFound || desktop.canCmd" class="flex flex-col gap-4" aria-labelledby="dl-h">
           <h2 id="dl-h" class="m-0 font-display text-xl font-extrabold">En cours</h2>
           <p v-if="!active.length" class="m-0 rounded-3xl border border-dashed border-white/20 p-8 text-soft">Aucun téléchargement en cours. Lance une installation depuis la fiche d’un jeu : elle apparaîtra ici avec sa progression réelle.</p>
           <ul v-else class="m-0 flex list-none flex-col gap-4 p-0">
@@ -58,15 +65,21 @@ const pct = (a) => Math.round(a.progress * 100)
                 </div>
                 <span class="h-2 overflow-hidden rounded-full bg-white/[0.12]" role="progressbar" :aria-valuenow="pct(a)" aria-valuemin="0" aria-valuemax="100" :aria-label="'Progression de ' + a.name"><span class="block h-full rounded-full transition-[width] duration-700" :class="a.paused ? 'bg-amber' : 'bg-accent'" :style="{ width: pct(a) + '%' }" /></span>
                 <dl class="m-0 flex flex-wrap gap-x-8 gap-y-1 text-[13px]">
-                  <div class="flex gap-1.5"><dt class="text-mute">État</dt><dd class="m-0 font-semibold" :class="a.paused ? 'text-amber' : 'text-white'">{{ a.paused ? 'En pause dans Steam' : a.speed > 0 ? 'Téléchargement' : 'Démarrage…' }}</dd></div>
+                  <div class="flex gap-1.5"><dt class="text-mute">État</dt><dd class="m-0 font-semibold" :class="a.failed ? 'text-hot' : a.paused || a.queued ? 'text-amber' : 'text-white'">{{ stateOf(a) }}</dd></div>
                   <div class="flex gap-1.5"><dt class="text-mute">Téléchargé</dt><dd class="m-0 font-semibold tabular-nums">{{ fmtBytes(a.bytesDownloaded) }} / {{ fmtBytes(a.bytesToDownload) }}</dd></div>
-                  <div v-if="!a.paused" class="flex gap-1.5"><dt class="text-mute">Vitesse</dt><dd class="m-0 font-semibold tabular-nums">{{ fmtSpeed(a.speed) }}</dd></div>
-                  <div v-if="!a.paused" class="flex gap-1.5"><dt class="text-mute">Temps restant</dt><dd class="m-0 font-semibold tabular-nums">{{ fmtEta(a.eta) }}</dd></div>
+                  <div v-if="!a.paused && !a.queued && !a.failed" class="flex gap-1.5"><dt class="text-mute">Vitesse</dt><dd class="m-0 font-semibold tabular-nums">{{ fmtSpeed(a.speed) }}</dd></div>
+                  <div v-if="!a.paused && !a.queued && !a.failed" class="flex gap-1.5"><dt class="text-mute">Temps restant</dt><dd class="m-0 font-semibold tabular-nums">{{ fmtEta(a.eta) }}</dd></div>
                 </dl>
+                <p v-if="a.failed && a.message" class="m-0 text-sm text-hot" role="alert">{{ a.message }}</p>
+              </div>
+              <div v-if="a.job" class="flex shrink-0 flex-col gap-2 sm:flex-row">
+                <button v-if="a.paused || a.failed" type="button" class="flex h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-extrabold text-ink" @click="cmd.resume(a.appid)"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>Reprendre</button>
+                <button v-else type="button" class="flex h-11 items-center gap-2 rounded-full border border-white/20 bg-transparent px-5 text-sm font-semibold text-white hover:bg-white/10" @click="cmd.pause(a.appid)"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" /></svg>Pause</button>
+                <button type="button" class="h-11 rounded-full border border-white/10 bg-transparent px-4 text-sm font-semibold text-mute hover:text-hot" :aria-label="'Annuler le téléchargement de ' + a.name" @click="cmd.cancel(a.appid)">Annuler</button>
               </div>
             </li>
           </ul>
-          <p v-if="active.some((a) => a.paused)" class="m-0 max-w-[640px] text-xs text-mute">Ce téléchargement est en pause dans ton client Steam : le launcher en suit l’état en direct, mais la reprise ne peut se faire que depuis Steam.</p>
+          <p v-if="active.some((a) => a.paused && !a.job)" class="m-0 max-w-[640px] text-xs text-mute">Un téléchargement lancé depuis le client Steam se met en pause et reprend dans Steam ; le launcher en suit l’état en direct.</p>
         </section>
 
         <section v-if="desktop.steamFound && done.length" class="flex flex-col gap-4" aria-labelledby="ok-h">
