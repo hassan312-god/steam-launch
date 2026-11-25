@@ -11,7 +11,7 @@ import Ring from '../components/bits/Ring.vue'
 import SpotlightCard from '../components/bits/SpotlightCard.vue'
 import TiltedCard from '../components/bits/TiltedCard.vue'
 import TrailerVideo from '../components/TrailerVideo.vue'
-import Reviews from '../components/Reviews.vue'
+import Requirements from '../components/Requirements.vue'
 import { byId, fmt, games } from '../data/games'
 import { theme } from '../composables/useTheme'
 import { play, toggleFav, toggleLibrary } from '../composables/useLaunch'
@@ -190,7 +190,7 @@ onBeforeUnmount(() => ctx?.revert())
             <div class="flex flex-col gap-1"><dt class="text-xs text-mute">Taille</dt><dd class="m-0 text-sm font-semibold">{{ game.sizeGo ? game.sizeGo + " Go" : "—" }}</dd></div>
             <div class="flex flex-col gap-1"><dt class="text-xs text-mute">Prix</dt><dd class="m-0 text-sm font-semibold">{{ game.price || '—' }}</dd></div>
           </dl>
-          <Reviews :appid="game.id" class="mt-8 max-w-[820px]" />
+          <Requirements :req="game.req" :key="game.id" class="mt-8 max-w-[820px]" />
         </section>
 
         <section v-if="game.ach.length" class="flex flex-col gap-4" aria-labelledby="ach-h">

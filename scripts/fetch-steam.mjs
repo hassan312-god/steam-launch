@@ -29,6 +29,21 @@ const ids = (k) => (feat[k]?.items || []).map((i) => i.id)
 const specials = ids('specials')
 const top = ids('top_sellers')
 const news = ids('new_releases').slice(0, 14)
+// Configuration requise : le HTML Steam (<li><strong>Libellé :</strong> valeur</li>) devient [[libellé, valeur], …].
+const parseReq = (html = '') => {
+  const rows = []
+  let note = ''
+  for (const m of html.matchAll(/<li>(.*?)<\/li>/gs)) {
+    const li = m[1]
+    const lab = li.match(/<strong>(.*?)<\/strong>/s)
+    const label = lab ? strip(lab[1]).replace(/\s*:\s*$/, '') : ''
+    const value = strip(li.replace(/<strong>.*?<\/strong>/s, ''))
+    if (label && value) rows.push([label, value])
+    else if (!label && value) note = value
+  }
+  return rows.length || note ? { rows, note } : null
+}
+
 const out = []
 for (const id of [...new Set([...IDS, ...specials, ...top, ...news])]) {
   try {
@@ -61,6 +76,7 @@ for (const id of [...new Set([...IDS, ...specials, ...top, ...news])]) {
       ach: (d.achievements?.highlighted || []).slice(0, 6).map((a) => ({ name: a.name, icon: a.path.split('?')[0] })),
       shots,
       movies: (d.movies || []).slice(0, 3).map((m) => ({ name: strip(m.name), thumb: m.thumbnail.split('?')[0], hls: m.hls_h264 || null })).filter((m) => m.hls),
+      req: { min: parseReq(d.pc_requirements?.minimum), rec: parseReq(d.pc_requirements?.recommended) },
       recs: d.recommendations?.total || 0,
       size: Number((strip(d.pc_requirements?.minimum || '').match(/(?:Espace disque|Stockage|Storage|Hard Drive)[^0-9]*(\d+)\s*(?:GB|Go)/i) || [])[1]) || null,
     }
