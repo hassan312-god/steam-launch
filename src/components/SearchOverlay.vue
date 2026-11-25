@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import gsap from 'gsap'
-import { games } from '../data/games'
+import { games, myGames, topSellers } from '../data/games'
 import { prefersReduced } from '../composables/motion'
 
 const props = defineProps({ open: Boolean })
@@ -16,7 +16,7 @@ const active = ref(0)
 const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 const results = computed(() => {
   const t = norm(q.value.trim())
-  const list = t ? games.filter((g) => norm(g.title + ' ' + g.genres.join(' ') + ' ' + g.studio).includes(t)) : games.filter((g) => g.owned)
+  const list = t ? games.filter((g) => norm(g.title + ' ' + g.genres.join(' ') + ' ' + g.studio).includes(t)) : (myGames.value.length ? myGames.value : topSellers)
   return list.slice(0, 8)
 })
 watch(q, () => (active.value = 0))
@@ -57,12 +57,12 @@ watch(() => props.open, async (o) => {
       </div>
       <ul class="m-0 flex max-h-[56vh] list-none flex-col gap-1 overflow-y-auto p-2 no-scrollbar">
         <li v-if="!results.length" class="px-4 py-8 text-center text-mute">Aucun jeu ne correspond à « {{ q }} ».</li>
-        <li v-else-if="!q" class="px-4 pb-1 pt-2 text-xs font-bold tracking-[0.14em] text-mute">DANS TA BIBLIOTHÈQUE</li>
+        <li v-else-if="!q" class="px-4 pb-1 pt-2 text-xs font-bold tracking-[0.14em] text-mute">{{ myGames.length ? 'DANS TA BIBLIOTHÈQUE' : 'MEILLEURES VENTES' }}</li>
         <li v-for="(g, i) in results" :key="g.id" data-res>
           <button type="button" class="flex w-full items-center gap-4 rounded-2xl border-0 p-2.5 text-left text-white transition-colors" :class="i === active ? 'bg-white/10' : 'bg-transparent hover:bg-white/5'" @mouseenter="active = i" @click="go(g)">
             <img :src="g.cover" alt="" class="h-[72px] w-12 shrink-0 rounded-lg object-cover" />
             <span class="flex min-w-0 flex-1 flex-col gap-0.5"><strong class="truncate text-[15px]">{{ g.title }}</strong><span class="truncate text-xs text-mute">{{ g.genres.slice(0, 3).join(' · ') }}</span></span>
-            <span class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-extrabold tracking-[0.06em] text-ink" :class="g.owned ? 'bg-accent' : 'bg-soft'">{{ g.owned ? 'BIBLIOTHÈQUE' : g.price || 'MAGASIN' }}</span>
+            <span class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-extrabold tracking-[0.06em] text-ink" :class="g.owned ? 'bg-accent' : 'bg-soft'">{{ g.owned ? 'BIBLIOTHÈQUE' : g.price || 'GRATUIT' }}</span>
           </button>
         </li>
       </ul>

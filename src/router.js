@@ -6,7 +6,6 @@ const routes = [
   { path: '/jeu/:id', name: 'game', component: () => import('./views/GameView.vue'), meta: { title: 'Jeu' } },
   { path: '/magasin', name: 'store', component: () => import('./views/StoreView.vue'), meta: { title: 'Magasin' } },
   { path: '/bibliotheque', name: 'library', component: () => import('./views/LibraryView.vue'), meta: { title: 'Bibliothèque' } },
-  { path: '/amis', name: 'friends', component: () => import('./views/FriendsView.vue'), meta: { title: 'Amis' } },
   { path: '/parametres', name: 'settings', component: () => import('./views/SettingsView.vue'), meta: { title: 'Paramètres' } },
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ]

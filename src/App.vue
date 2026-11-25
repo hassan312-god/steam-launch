@@ -1,13 +1,22 @@
 <script setup>
-import { computed } from 'vue'
-import { RouterView, useRoute } from 'vue-router'
+import { computed, onMounted } from 'vue'
+import { RouterView, useRoute, useRouter } from 'vue-router'
 import gsap from 'gsap'
 import AppHeader from './components/AppHeader.vue'
-import LaunchOverlay from './components/LaunchOverlay.vue'
 import Toaster from './components/Toaster.vue'
 import { prefersReduced } from './composables/motion'
+import { loadSteam, steam } from './composables/useSteam'
+import { toast } from './composables/useToast'
 
 const route = useRoute()
+const router = useRouter()
+onMounted(async () => {
+  await loadSteam()
+  const q = new URLSearchParams(location.search).get('steam')
+  if (q === 'ok' && steam.status === 'in') toast(`Connecté à Steam : ${steam.count} jeu${steam.count > 1 ? 'x' : ''} synchronisé${steam.count > 1 ? 's' : ''}`)
+  else if (q === 'refuse' || q === 'invalide') toast('Connexion Steam refusée ou invalide', 'warn')
+  if (q) router.replace({ path: route.path })
+})
 const bare = computed(() => route.meta.bare)
 
 // Transition de page pilotée par GSAP.
@@ -29,7 +38,6 @@ function leave(el, done) {
         <component :is="Component" :key="r.path" />
       </Transition>
     </RouterView>
-    <LaunchOverlay />
     <Toaster />
   </div>
 </template>

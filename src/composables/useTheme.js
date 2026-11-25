@@ -7,13 +7,9 @@ const defaults = {
   accent: '#B6FF3D',
   wall: '1245620',
   density: 'Confort',
-  startup: true,
-  console: true,
-  music: false,
-  activity: true,
-  lang: 'Français',
-  bandwidth: 50,
-  username: 'hassan312',
+  bgVideo: true,
+  trailerSound: false,
+  username: 'Joueur',
 }
 
 function load() {

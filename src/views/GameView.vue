@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import gsap from 'gsap'
 import SplitText from '../components/bits/SplitText.vue'
@@ -11,17 +11,21 @@ import Ring from '../components/bits/Ring.vue'
 import SpotlightCard from '../components/bits/SpotlightCard.vue'
 import TiltedCard from '../components/bits/TiltedCard.vue'
 import TrailerVideo from '../components/TrailerVideo.vue'
-import { byId, friends, games } from '../data/games'
-import { install, play, toggleFav } from '../composables/useLaunch'
+import Requirements from '../components/Requirements.vue'
+import { fmt, games, getGame } from '../data/games'
+import { theme } from '../composables/useTheme'
+import { install, play, toggleFav, toggleLibrary } from '../composables/useLaunch'
 import { prefersReduced } from '../composables/motion'
 
 const route = useRoute()
 const reduced = prefersReduced()
-const game = computed(() => byId[route.params.id] ?? games[0])
-const playing = computed(() => friends.filter((f) => f.playing === game.value.id))
+// Le jeu vient du catalogue, sinon il est chargé à la volée depuis Steam (/api/steam/app).
+const current = shallowRef(null)
+const failed = ref(false)
+const EMPTY = { id: '', title: '', cover: '', wide: '', header: '', desc: '', studio: '', year: '', price: '', genres: [], cats: [], shots: [], movies: [], ach: [], req: null, tags: [], moods: [], recs: 0, total: 0, discount: 0, free: false, metacritic: null, owned: false, fav: false, steam: false, local: false, hours: null }
+const game = computed(() => current.value ?? EMPTY)
 const similar = computed(() => games.filter((g) => g.id !== game.value.id && g.genres.some((x) => game.value.genres.includes(x))).slice(0, 8))
-const achPct = computed(() => (game.value.total ? Math.round((game.value.gotAch / game.value.total) * 100) : 0))
-const cta = computed(() => (game.value.installed ? 'Jouer' : game.value.owned ? 'Installer' : game.value.price === 'Gratuit' ? 'Jouer gratuitement' : 'Acheter · ' + (game.value.price || 'Steam')))
+const buyLabel = computed(() => (game.value.free ? 'Jouer gratuitement' : 'Acheter · ' + (game.value.price || 'sur Steam')))
 const steamUrl = computed(() => `https://store.steampowered.com/app/${game.value.id}`)
 
 // Médias du héros : bandes-annonces d'abord, puis captures. Sans doublon (même URL ou même vidéo).
@@ -39,7 +43,7 @@ const media = computed(() => {
 })
 const cur = ref(0)
 const item = computed(() => media.value[cur.value] ?? null)
-const sound = ref(false)
+const sound = ref(theme.trailerSound)
 const videoOn = ref(false)
 let vt
 const onPlaying = () => { clearTimeout(vt); vt = setTimeout(() => (videoOn.value = true), 600) }
@@ -58,7 +62,7 @@ let ctx
 function intro() {
   ctx?.revert()
   cur.value = 0
-  sound.value = false
+  sound.value = theme.trailerSound
   if (prefersReduced()) return
   ctx = gsap.context(() => {
     gsap.from('[data-in]', { opacity: 0, y: 26, stagger: 0.1, duration: 0.8, ease: 'power3.out', delay: 0.5 })
@@ -66,8 +70,17 @@ function intro() {
     gsap.from('[data-ach]', { opacity: 0, x: -24, stagger: 0.08, duration: 0.6, ease: 'power3.out', delay: 1.2 })
   }, root.value)
 }
-onMounted(intro)
-watch(() => route.params.id, async () => {
+watch(() => route.params.id, async (id) => {
+  current.value = null
+  failed.value = false
+  try {
+    current.value = await getGame(id)
+  } catch {
+    failed.value = true
+  }
+}, { immediate: true })
+watch(current, async (g) => {
+  if (!g) return
   await nextTick()
   window.scrollTo({ top: 0 })
   intro()
@@ -77,14 +90,14 @@ onBeforeUnmount(() => ctx?.revert())
 
 <template>
   <div ref="root" class="relative min-h-screen overflow-hidden bg-ink pt-[var(--header-h,100px)]">
-    <div class="pointer-events-none absolute inset-x-0 top-0 h-[min(900px,100vh)] overflow-hidden" aria-hidden="true">
+    <div v-if="current" class="pointer-events-none absolute inset-x-0 top-0 h-[min(900px,100vh)] overflow-hidden" aria-hidden="true">
       <img :src="game.wide" alt="" class="absolute inset-0 size-full object-cover" />
       <Transition :css="false" appear @enter="bgEnter" @leave="bgLeave">
         <div v-if="item" :key="item.hls || item.full" class="absolute inset-0">
           <img v-if="item.type === 'shot'" :src="item.full" alt="" class="absolute inset-0 size-full object-cover" />
           <template v-else>
             <img :src="game.shots[0] || item.thumb" alt="" class="absolute inset-0 size-full object-cover" />
-            <TrailerVideo v-if="!reduced" ambient :sound="sound" :start-at="7" :src="item.hls" class="absolute inset-0 size-full object-cover transition-opacity duration-[1200ms]" :class="videoOn ? 'opacity-100' : 'opacity-0'" @playing="onPlaying" />
+            <TrailerVideo v-if="!reduced && theme.bgVideo" ambient :sound="sound" :start-at="7" :src="item.hls" class="absolute inset-0 size-full object-cover transition-opacity duration-[1200ms]" :class="videoOn ? 'opacity-100' : 'opacity-0'" @playing="onPlaying" />
           </template>
         </div>
       </Transition>
@@ -92,7 +105,18 @@ onBeforeUnmount(() => ctx?.revert())
       <div class="absolute inset-0" style="background: linear-gradient(180deg, rgba(6,6,10,0.7) 0%, rgba(6,6,10,0) 25%, rgba(6,6,10,0.35) 60%, #06060A 100%)" />
     </div>
 
-    <main class="shell relative flex flex-col gap-12 pb-16 pt-6">
+    <main v-if="!current" class="shell relative flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center" :aria-busy="!failed">
+      <template v-if="failed">
+        <h1 class="m-0 font-display text-3xl font-black">Jeu introuvable</h1>
+        <p class="m-0 text-soft">Steam ne connaît pas ce jeu ou la vitrine est indisponible.</p>
+        <RouterLink to="/magasin" class="flex h-12 items-center rounded-full bg-accent px-6 font-extrabold text-ink no-underline">Retour au magasin</RouterLink>
+      </template>
+      <template v-else>
+        <span class="size-10 animate-spin rounded-full border-4 border-white/15 border-t-accent" aria-hidden="true" />
+        <p class="m-0 text-soft">Chargement du jeu depuis Steam…</p>
+      </template>
+    </main>
+    <main v-else class="shell relative flex flex-col gap-12 pb-16 pt-6">
       <RouterLink data-in to="/bibliotheque" class="flex w-fit items-center gap-2 text-sm font-semibold text-soft no-underline transition-colors hover:text-white">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="15,5 8,12 15,19" /></svg>Bibliothèque
       </RouterLink>
@@ -105,23 +129,30 @@ onBeforeUnmount(() => ctx?.revert())
         <div class="flex min-w-0 flex-1 basis-[420px] flex-col gap-5">
           <div data-in class="flex flex-wrap items-center gap-2">
             <span class="eyebrow">{{ game.genres.slice(0, 3).join(' · ') }}</span>
-            <span class="rounded-full bg-white/[0.14] px-3 py-1.5 text-xs font-bold tracking-[0.14em] backdrop-blur-md">{{ game.state }}</span>
+            <span class="rounded-full bg-white/[0.14] px-3 py-1.5 text-xs font-bold tracking-[0.14em] backdrop-blur-md">{{ game.owned ? 'DANS MA BIBLIOTHÈQUE' : game.price || 'GRATUIT' }}</span>
           </div>
           <h1 class="m-0 font-display text-[clamp(32px,5.6vw,92px)] font-black uppercase leading-[0.95] tracking-[-0.03em]"><SplitText :key="game.id" :text="game.title" :stagger="0.02" /></h1>
           <p data-in class="m-0 text-[15px] text-soft">{{ game.studio }} · {{ game.year }}<span v-if="game.metacritic"> · Metacritic {{ game.metacritic }}</span></p>
           <div data-in class="flex flex-wrap items-center gap-3">
             <Magnet :padding="30" :strength="0.25">
-              <a v-if="!game.owned" :href="steamUrl" target="_blank" rel="noopener noreferrer" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink no-underline"><ShinyText :speed="4">{{ cta }}</ShinyText></a>
-              <button v-else type="button" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="game.installed ? play(game) : install(game)">
-                <svg v-if="game.installed" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6,4 20,12 6,20" /></svg>
-                <ShinyText :speed="4">{{ cta }}</ShinyText>
+              <button v-if="game.owned" type="button" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="play(game)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6,4 20,12 6,20" /></svg>
+                <ShinyText :speed="4">Jouer</ShinyText>
               </button>
+              <button v-else-if="game.free" type="button" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="install(game)"><ShinyText :speed="4">Installer gratuitement</ShinyText></button>
+              <a v-else :href="steamUrl" target="_blank" rel="noopener noreferrer" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink no-underline"><ShinyText :speed="4">{{ buyLabel }}</ShinyText></a>
             </Magnet>
-            <button type="button" :aria-pressed="game.fav" class="flex h-[60px] items-center gap-2 rounded-full border border-white/[0.16] bg-ink/50 px-6 text-[15px] font-semibold text-white transition-colors hover:bg-white/10" @click="toggleFav(game)">
-              <svg width="18" height="18" viewBox="0 0 24 24" :fill="game.fav ? '#FF3D9A' : 'none'" stroke="#FF3D9A" stroke-width="2" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z" /></svg>
-              {{ game.fav ? 'Dans mes favoris' : 'Ajouter aux favoris' }}
+            <button v-if="game.owned" type="button" class="flex h-[60px] items-center gap-2 rounded-full border border-white/[0.16] bg-ink/50 px-6 text-[15px] font-semibold text-white transition-colors hover:bg-white/10" @click="install(game)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" /></svg>Installer
             </button>
-            <a :href="steamUrl" target="_blank" rel="noopener noreferrer" class="flex h-[60px] items-center rounded-full px-5 text-sm font-semibold text-soft no-underline transition-colors hover:text-white">Voir sur Steam ↗</a>
+            <span v-if="game.steam && !game.local" class="flex h-[60px] items-center gap-2 rounded-full border border-accent bg-accent/15 px-6 text-[15px] font-semibold text-white">✓ Dans ta bibliothèque Steam</span>
+            <button v-else type="button" :aria-pressed="game.owned" class="flex h-[60px] items-center gap-2 rounded-full border px-6 text-[15px] font-semibold text-white transition-colors" :class="game.owned ? 'border-accent bg-accent/15' : 'border-white/[0.16] bg-ink/50 hover:bg-white/10'" @click="toggleLibrary(game)">
+              {{ game.owned ? '✓ Dans ma bibliothèque' : '+ Ajouter à ma bibliothèque' }}
+            </button>
+            <button type="button" :aria-pressed="game.fav" :aria-label="game.fav ? 'Retirer des favoris' : 'Ajouter aux favoris'" class="flex size-[60px] items-center justify-center rounded-full border border-white/[0.16] bg-ink/50 transition-colors hover:bg-white/10" @click="toggleFav(game)">
+              <svg width="20" height="20" viewBox="0 0 24 24" :fill="game.fav ? '#FF3D9A' : 'none'" stroke="#FF3D9A" stroke-width="2" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z" /></svg>
+            </button>
+            
           </div>
         </div>
       </section>
@@ -151,29 +182,27 @@ onBeforeUnmount(() => ctx?.revert())
         </button>
       </div>
 
-      <!-- Chiffres -->
+      <!-- Chiffres réels (Steam) -->
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SpotlightCard data-stat class="card flex flex-col gap-1.5 p-6">
-          <span class="text-[13px] text-mute">{{ game.owned ? 'Temps de jeu' : 'Prix' }}</span>
-          <span v-if="game.owned" class="font-display text-5xl font-black leading-none"><CountUp :key="game.id" :to="game.hours" :duration="1.6" :delay="0.8" /><span class="text-[22px]"> h</span></span>
-          <span v-else class="font-display text-4xl font-black leading-none">{{ game.price || '—' }}</span>
-          <span class="text-[13px] text-mute">{{ game.owned ? 'Dernière session hier soir' : game.discount ? `-${game.discount} % en ce moment` : 'Pas encore dans ta bibliothèque' }}</span>
+          <span class="text-[13px] text-mute">Prix</span>
+          <span class="font-display text-4xl font-black leading-none">{{ game.price || 'Gratuit' }}</span>
+          <span class="text-[13px]" :class="game.discount ? 'font-semibold text-hot' : 'text-mute'">{{ game.hours != null ? `Tu y as joué ${fmt.format(game.hours)} h` : game.discount ? `-${game.discount} % en ce moment` : 'Prix du magasin Steam' }}</span>
         </SpotlightCard>
         <div data-stat class="card flex items-center gap-[18px] p-6">
-          <Ring :key="game.id" :value="game.progress" :size="92" :thickness="9" track="rgba(255,255,255,0.12)" inner="var(--color-panel)" :delay="0.9"><span class="font-display text-lg font-extrabold"><CountUp :to="game.progress" :duration="1.4" :delay="0.9" />%</span></Ring>
-          <div class="flex min-w-0 flex-col gap-1"><span class="text-[13px] text-mute">Progression</span><span class="text-lg font-bold leading-tight">{{ game.owned ? game.trophy : 'Pas commencé' }}</span></div>
+          <Ring v-if="game.metacritic" :key="game.id" :value="game.metacritic" :size="92" :thickness="9" track="rgba(255,255,255,0.12)" inner="var(--color-panel)" :delay="0.9"><span class="font-display text-xl font-extrabold"><CountUp :to="game.metacritic" :duration="1.4" :delay="0.9" /></span></Ring>
+          <span v-else class="font-display text-4xl font-black text-mute">—</span>
+          <div class="flex min-w-0 flex-col gap-1"><span class="text-[13px] text-mute">Metacritic</span><span class="text-sm font-semibold leading-tight">{{ game.metacritic ? 'Note de la presse' : 'Pas de note' }}</span></div>
         </div>
-        <div data-stat class="card flex flex-col gap-2.5 p-6">
-          <span class="text-[13px] text-mute">Succès</span>
-          <span class="font-display text-[28px] font-extrabold"><CountUp :to="game.gotAch" :duration="1.4" :delay="0.9" /> <span class="text-[15px] text-mute">/ {{ game.total || '—' }}</span></span>
-          <div class="h-2 rounded bg-white/[0.12]"><div class="h-2 rounded bg-accent transition-[width] duration-1000" :style="{ width: achPct + '%' }" /></div>
+        <div data-stat class="card flex flex-col gap-1.5 p-6">
+          <span class="text-[13px] text-mute">Avis Steam</span>
+          <span class="font-display text-4xl font-black leading-none"><CountUp :key="game.id" :to="game.recs" :duration="1.6" :delay="0.9" /></span>
+          <span class="text-[13px] text-mute">joueurs recommandent ce jeu</span>
         </div>
-        <div data-stat class="card flex flex-col gap-3 p-6">
-          <span class="text-[13px] text-mute">Amis qui y jouent</span>
-          <div v-if="playing.length" class="flex">
-            <span v-for="(f, i) in playing" :key="f.name" class="flex size-10 items-center justify-center rounded-full border-[3px] border-panel text-[13px] font-extrabold text-ink" :class="i ? '-ml-3' : ''" :style="{ background: f.col }" :title="f.name">{{ f.ini }}</span>
-          </div>
-          <span class="text-sm">{{ playing.length ? playing.map((f) => f.name).join(', ') + ' en ligne' : 'Personne en ce moment' }}</span>
+        <div data-stat class="card flex flex-col gap-1.5 p-6">
+          <span class="text-[13px] text-mute">Succès Steam</span>
+          <span class="font-display text-4xl font-black leading-none">{{ game.total || '—' }}</span>
+          <span class="text-[13px] text-mute">{{ game.total ? 'à débloquer' : 'Aucun succès' }}</span>
         </div>
       </div>
 
@@ -190,16 +219,18 @@ onBeforeUnmount(() => ctx?.revert())
             <div class="flex flex-col gap-1"><dt class="text-xs text-mute">Taille</dt><dd class="m-0 text-sm font-semibold">{{ game.sizeGo ? game.sizeGo + " Go" : "—" }}</dd></div>
             <div class="flex flex-col gap-1"><dt class="text-xs text-mute">Prix</dt><dd class="m-0 text-sm font-semibold">{{ game.price || '—' }}</dd></div>
           </dl>
+          <Requirements :req="game.req" :key="game.id" class="mt-8 max-w-[820px]" />
         </section>
 
         <section v-if="game.ach.length" class="flex flex-col gap-4" aria-labelledby="ach-h">
-          <h2 id="ach-h" class="m-0 font-display text-[22px] font-extrabold tracking-[-0.01em]">Succès</h2>
+          <h2 id="ach-h" class="m-0 font-display text-[22px] font-extrabold tracking-[-0.01em]">Succès à débloquer</h2>
           <ul class="m-0 flex list-none flex-col gap-2.5 p-0">
-            <li v-for="(a, i) in game.ach" :key="a.name" data-ach class="card flex items-center gap-3.5 p-3.5" :class="i < Math.ceil((game.ach.length * game.progress) / 100) ? '' : 'opacity-55'">
-              <img :src="a.icon" alt="" loading="lazy" class="size-12 shrink-0 rounded-xl object-cover" :class="i < Math.ceil((game.ach.length * game.progress) / 100) ? '' : 'grayscale'" />
-              <div class="flex min-w-0 flex-col gap-0.5"><strong class="truncate text-sm">{{ a.name }}</strong><span class="text-xs text-mute">{{ i < Math.ceil((game.ach.length * game.progress) / 100) ? 'Débloqué' : 'Verrouillé' }}</span></div>
+            <li v-for="a in game.ach" :key="a.name" data-ach class="card flex items-center gap-3.5 p-3.5">
+              <img :src="a.icon" alt="" loading="lazy" class="size-12 shrink-0 rounded-xl object-cover" />
+              <strong class="truncate text-sm">{{ a.name }}</strong>
             </li>
           </ul>
+          <span class="text-xs text-mute">{{ game.total }} succès au total sur Steam</span>
         </section>
       </div>
 

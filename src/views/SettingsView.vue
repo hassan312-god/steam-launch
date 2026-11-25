@@ -2,12 +2,12 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import gsap from 'gsap'
 import SplitText from '../components/bits/SplitText.vue'
-import Ring from '../components/bits/Ring.vue'
 import CountUp from '../components/bits/CountUp.vue'
-import { accents, byId, walls } from '../data/games'
+import { accents, byId, libraryAll, walls } from '../data/games'
 import { setAccent, theme } from '../composables/useTheme'
 import Modal from '../components/Modal.vue'
 import { toast } from '../composables/useToast'
+import { connectSteam, disconnectSteam, displayName, loadSteam, steam } from '../composables/useSteam'
 import { prefersReduced } from '../composables/motion'
 
 const editOpen = ref(false)
@@ -23,11 +23,10 @@ function saveName() {
 const densities = ['Compact', 'Confort', 'Géant']
 const wall = computed(() => byId[theme.wall].wide)
 const toggles = [
-  ['startup', 'Lancer G.A au démarrage', 'Directement sur l’écran de chargement'],
-  ['console', 'Mode console plein écran', 'Navigation à la manette, comme sur une PS5'],
-  ['music', 'Musique du jeu sélectionné', 'Ambiance sonore sur l’accueil'],
-  ['activity', 'Montrer mon activité', 'Tes amis voient à quoi tu joues'],
+  ['bgVideo', 'Vidéos en arrière-plan', 'Joue la bande-annonce du jeu en fond de l’accueil et des fiches'],
+  ['trailerSound', 'Son des bandes-annonces', 'Active le son par défaut quand une vidéo se lance'],
 ]
+const favCount = computed(() => libraryAll.value.filter((g) => g.fav).length)
 
 function wallEnter(el, done) {
   if (prefersReduced()) return done()
@@ -62,15 +61,30 @@ onBeforeUnmount(() => ctx?.revert())
         <div class="absolute inset-0 bg-gradient-to-t from-ink/95 to-ink/20 to-75%" />
         <div class="relative flex w-full flex-wrap items-end justify-between gap-5 px-8 py-7">
           <div class="flex items-center gap-5">
-            <Ring :value="72" :size="104" :thickness="5" track="rgba(255,255,255,0.18)" inner="var(--color-ink)">
-              <span class="m-1 flex size-[calc(100%-8px)] items-center justify-center rounded-full bg-avatar font-display text-4xl font-black">H</span>
-            </Ring>
+            <span class="flex size-[104px] items-center justify-center overflow-hidden rounded-full border-[5px] border-accent bg-avatar font-display text-4xl font-black uppercase"><img v-if="steam.profile?.avatar" :src="steam.profile.avatar" alt="" class="size-full object-cover" /><template v-else>{{ (displayName || 'J')[0] }}</template></span>
             <div class="flex flex-col gap-1.5">
-              <span class="font-display text-[clamp(26px,4vw,38px)] font-black tracking-[-0.02em]"><SplitText :text="theme.username" :delay="0.5" /></span>
-              <span class="text-sm text-[#D7D8E0]">Niveau <CountUp :to="47" :duration="1.4" :delay="0.6" /> · 412 h de jeu · Dakar</span>
+              <span class="font-display text-[clamp(26px,4vw,38px)] font-black tracking-[-0.02em]"><SplitText :text="displayName" :key="displayName" :delay="0.5" /></span>
+              <span class="text-sm text-[#D7D8E0]"><CountUp :to="libraryAll.length" :duration="1" :delay="0.6" /> jeu{{ libraryAll.length > 1 ? 'x' : '' }} · {{ favCount }} favori{{ favCount > 1 ? 's' : '' }}</span>
             </div>
           </div>
-          <button type="button" class="h-[46px] rounded-full border border-white/20 bg-ink/55 px-[22px] text-sm font-bold text-white transition-colors hover:bg-white/10" @click="openEdit">Modifier le profil</button>
+          <button v-if="steam.status !== 'in'" type="button" class="h-[46px] rounded-full border border-white/20 bg-ink/55 px-[22px] text-sm font-bold text-white transition-colors hover:bg-white/10" @click="openEdit">Modifier le profil</button>
+        </div>
+      </section>
+
+      <section data-panel class="card flex flex-wrap items-center justify-between gap-5 p-7" aria-labelledby="steam-h">
+        <div class="flex min-w-0 flex-col gap-1">
+          <h2 id="steam-h" class="m-0 font-display text-[22px] font-black">Compte Steam</h2>
+          <p v-if="steam.status === 'in'" class="m-0 text-sm text-soft">Connecté en tant que <strong class="text-white">{{ steam.profile.name }}</strong> · {{ steam.count }} jeu{{ steam.count > 1 ? 'x' : '' }} synchronisé{{ steam.count > 1 ? 's' : '' }}<span v-if="!steam.gamesVisible" class="text-amber"> · détails de jeu privés</span></p>
+          <p v-else-if="steam.status === 'not_configured'" class="m-0 text-sm text-soft">La connexion Steam n’est pas encore configurée sur ce site.</p>
+          <p v-else-if="steam.status === 'unavailable'" class="m-0 text-sm text-soft">Connexion Steam indisponible ici (disponible sur le site en ligne).</p>
+          <p v-else class="m-0 text-sm text-soft">Retrouve tes vrais jeux et tes heures de jeu. Ton profil et tes détails de jeu doivent être publics.</p>
+        </div>
+        <div class="flex flex-wrap gap-2.5">
+          <template v-if="steam.status === 'in'">
+            <button type="button" class="h-11 rounded-full border border-white/20 bg-transparent px-5 text-sm font-semibold text-white hover:bg-white/10" @click="loadSteam().then(() => toast('Bibliothèque Steam resynchronisée'))">Resynchroniser</button>
+            <button type="button" class="h-11 rounded-full border border-white/20 bg-transparent px-5 text-sm font-semibold text-white hover:bg-white/10" @click="disconnectSteam">Se déconnecter</button>
+          </template>
+          <a v-else-if="steam.status === 'out'" href="/api/steam/login" @click.prevent="connectSteam" class="flex h-11 items-center rounded-full bg-accent px-6 text-sm font-extrabold text-ink no-underline">Se connecter avec Steam</a>
         </div>
       </section>
 
@@ -128,18 +142,10 @@ onBeforeUnmount(() => ctx?.revert())
         </section>
 
         <section data-panel class="card flex min-w-0 flex-[1_1_440px] flex-col p-7" aria-labelledby="xp-h">
-          <h2 id="xp-h" class="m-0 mb-2 font-display text-[26px] font-black">Ton expérience</h2>
-          <div v-for="[key, label, hint] in toggles" :key="key" data-row class="flex items-center justify-between gap-5 border-b border-white/[0.07] py-4">
+          <h2 id="xp-h" class="m-0 mb-2 font-display text-[26px] font-black">Affichage</h2>
+          <div v-for="[key, label, hint] in toggles" :key="key" data-row class="flex items-center justify-between gap-5 border-b border-white/[0.07] py-4 last:border-b-0">
             <div class="flex flex-col gap-[3px]"><label :for="key" class="text-[15px] font-semibold">{{ label }}</label><span class="text-[13px] text-mute">{{ hint }}</span></div>
             <input :id="key" v-model="theme[key]" type="checkbox" class="nv-sw" />
-          </div>
-          <div data-row class="flex items-center justify-between gap-5 border-b border-white/[0.07] py-4">
-            <div class="flex flex-col gap-[3px]"><label for="lang" class="text-[15px] font-semibold">Langue</label><span class="text-[13px] text-mute">Interface et sous-titres</span></div>
-            <select id="lang" v-model="theme.lang" class="h-11 min-w-[170px] rounded-full border border-white/[0.14] bg-ink px-4 text-sm text-white"><option>Français</option><option>Wolof</option><option>English</option></select>
-          </div>
-          <div data-row class="flex items-center justify-between gap-5 py-4">
-            <div class="flex flex-col gap-[3px]"><label for="bw" class="text-[15px] font-semibold">Limite de téléchargement</label><span class="text-[13px] text-mute">{{ theme.bandwidth }} Mo/s · la nuit : illimité</span></div>
-            <input id="bw" v-model.number="theme.bandwidth" type="range" min="0" max="100" class="w-[180px] accent-[var(--accent)]" />
           </div>
         </section>
       </div>

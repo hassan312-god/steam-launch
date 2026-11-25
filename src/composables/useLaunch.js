@@ -1,30 +1,34 @@
-import { reactive } from 'vue'
-import { saveLibrary } from '../data/games'
+import { saveLibrary, toggleOwned } from '../data/games'
 import { toast } from './useToast'
 
-// État de l'écran de lancement / d'installation (simulés : un site web ne peut pas lancer un vrai jeu).
-export const launch = reactive({ game: null, mode: 'play', note: '' })
+// Déclenche le client Steam installé sur l'appareil (protocole steam://) SANS quitter le launcher :
+// l'URL est chargée dans un iframe invisible, la page courante ne bouge pas.
+function openSteam(url) {
+  const f = document.createElement('iframe')
+  f.style.display = 'none'
+  f.src = url
+  document.body.appendChild(f)
+  setTimeout(() => f.remove(), 3000)
+}
 
-export const play = (game, note = '') => Object.assign(launch, { game, mode: 'play', note })
-export const install = (game) => Object.assign(launch, { game, mode: 'install', note: '' })
-export const close = () => (launch.game = null)
+// Si le jeu n'est pas installé, le client Steam propose directement de l'installer.
+export function play(game) {
+  openSteam(`steam://run/${game.id}`)
+  toast(`${game.title} : demande envoyée au client Steam`)
+}
 
-export function finish() {
-  const g = launch.game
-  if (!g) return
-  if (launch.mode === 'install') {
-    g.installed = true
-    g.state = 'INSTALLÉ'
-    saveLibrary()
-    toast(`${g.title} est installé`)
-  } else {
-    toast(`${g.title} est en cours d’exécution`)
-  }
-  launch.game = null
+export function install(game) {
+  openSteam(`steam://install/${game.id}`)
+  toast(`Installation de ${game.title} demandée au client Steam`)
 }
 
 export function toggleFav(g) {
   g.fav = !g.fav
   saveLibrary()
   toast(g.fav ? `${g.title} ajouté aux favoris` : `${g.title} retiré des favoris`)
+}
+
+export function toggleLibrary(g) {
+  toggleOwned(g)
+  toast(g.owned ? `${g.title} ajouté à ta bibliothèque` : `${g.title} retiré de ta bibliothèque`)
 }

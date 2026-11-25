@@ -1,12 +1,11 @@
 <script setup>
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import gsap from 'gsap'
 import Logo from '../components/Logo.vue'
 import BlurText from '../components/bits/BlurText.vue'
-import CountUp from '../components/bits/CountUp.vue'
 import Magnet from '../components/bits/Magnet.vue'
-import { games } from '../data/games'
+import { fmt, games } from '../data/games'
 import { prefersReduced } from '../composables/motion'
 
 const router = useRouter()
@@ -14,10 +13,21 @@ const root = ref(null)
 const enter = ref(null)
 const done = ref(false)
 const SEGMENTS = 10
-const FILLED = 7
 
 // Mur de jaquettes : 6 colonnes dont le contenu est doublé pour une boucle sans couture.
 const covers = games.slice(0, 24).map((g) => g.cover)
+const total = covers.length
+const loaded = ref(0)
+const pct = computed(() => Math.round((loaded.value / total) * 100))
+// Progression réelle : on précharge les jaquettes et on compte celles qui sont arrivées.
+function preload() {
+  covers.forEach((src) => {
+    const img = new Image()
+    img.onload = img.onerror = () => loaded.value++
+    img.src = src
+  })
+  setTimeout(() => (loaded.value = total), 8000) // filet de sécurité : réseau lent
+}
 const cols = Array.from({ length: 6 }, (_, c) => {
   const half = Array.from({ length: 6 }, (_, r) => covers[(c * 3 + r * 7) % covers.length])
   return half.concat(half)
@@ -25,11 +35,9 @@ const cols = Array.from({ length: 6 }, (_, c) => {
 
 let ctx
 onMounted(() => {
+  preload()
   ctx = gsap.context(() => {
-    if (prefersReduced()) {
-      done.value = true
-      return
-    }
+    if (prefersReduced()) return
     // Défilement continu, une colonne sur deux en sens inverse.
     gsap.utils.toArray('[data-col]').forEach((el, i) => {
       const up = i % 2 === 0
@@ -37,12 +45,12 @@ onMounted(() => {
     })
     gsap.from('[data-wall]', { opacity: 0, scale: 1.15, duration: 1.8, ease: 'power3.out' })
     gsap.from('[data-logo] > *', { yPercent: 120, opacity: 0, duration: 1, stagger: 0.12, ease: 'power4.out', delay: 0.2 })
-    gsap.from('[data-seg]', { scaleX: 0, transformOrigin: 'left', duration: 0.4, stagger: 0.1, delay: 0.9, ease: 'power2.out', onComplete: () => (done.value = true) })
   }, root.value)
 })
 onBeforeUnmount(() => ctx?.revert())
 const go = () => router.push('/accueil')
 // Dès que la synchronisation est finie, le bouton « Entrer » apparaît.
+watch(() => loaded.value >= total, (v) => { if (v) done.value = true })
 watch(done, async (v) => {
   if (!v || prefersReduced()) return
   await nextTick()
@@ -66,15 +74,15 @@ watch(done, async (v) => {
       <h1 data-logo class="m-0 flex overflow-hidden pb-2 leading-[0.85]" aria-label="G.A">
         <span class="inline-block"><Logo size="clamp(96px, 16vw, 168px)" /></span>
       </h1>
-      <BlurText tag="p" text="Tous tes jeux. Un seul endroit. On prépare ta bibliothèque." :delay="0.7" class="m-0 text-xl leading-normal text-soft" />
+      <BlurText tag="p" text="Tous tes jeux. Un seul endroit. On prépare le catalogue." :delay="0.7" class="m-0 text-xl leading-normal text-soft" />
 
       <div class="mt-3 flex flex-col gap-3">
-        <div class="flex gap-1.5" role="img" :aria-label="`Progression ${FILLED * 10} %`">
-          <span v-for="i in SEGMENTS" :key="i" data-seg class="h-1.5 flex-1 rounded-[3px]" :class="i <= FILLED ? 'bg-accent' : 'bg-white/[0.14]'" />
+        <div class="flex gap-1.5" role="img" :aria-label="`Chargement ${pct} %`">
+          <span v-for="i in SEGMENTS" :key="i" data-seg class="h-1.5 flex-1 rounded-[3px] transition-colors duration-300" :class="i * 10 <= pct ? 'bg-accent' : 'bg-white/[0.14]'" />
         </div>
         <div class="flex justify-between text-[13px] font-semibold tracking-[0.08em] text-soft">
-          <span>SYNCHRONISATION · <CountUp :to="150" :duration="2" :delay="0.9" /> / 214 JEUX</span>
-          <span class="text-white"><CountUp :to="70" :duration="2" :delay="0.9" /> %</span>
+          <span>CATALOGUE STEAM · {{ fmt.format(games.length) }} JEUX</span>
+          <span class="text-white tabular-nums">{{ pct }} %</span>
         </div>
       </div>
 
