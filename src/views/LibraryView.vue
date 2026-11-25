@@ -1,4 +1,5 @@
 <script setup>
+import Dropdown from '../components/Dropdown.vue'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import gsap from 'gsap'
@@ -125,10 +126,8 @@ function leave(el, done) {
             >{{ label }} <span class="font-semibold opacity-60">{{ all.filter(filters[label]).length }}</span></button>
           </div>
           <div class="flex items-center gap-2.5">
-            <label for="tri" class="text-[13px] text-mute">Trier par</label>
-            <select id="tri" :value="sortNow" @change="sort = $event.target.value" class="h-[42px] rounded-full border border-white/[0.14] bg-panel px-4 text-sm text-white">
-              <option v-for="s in sorts" :key="s" :value="s">{{ s }}</option>
-            </select>
+            <span class="text-[13px] text-mute">Trier par</span>
+            <Dropdown :model-value="sortNow" :options="sorts" label="Trier par" @update:model-value="sort = $event" />
           </div>
         </div>
 
