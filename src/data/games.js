@@ -1,4 +1,5 @@
 // Catalogue réel : données issues de l'API publique du magasin Steam (voir scripts/fetch-steam.mjs).
+import { reactive } from 'vue'
 import catalog from './catalog.json'
 
 const cat = Object.fromEntries(catalog.map((g) => [g.id, g]))
@@ -64,7 +65,33 @@ const build = (c) => {
   }
 }
 
-export const games = catalog.map(build)
+const KEY = 'ga-library'
+let saved = {}
+try {
+  saved = JSON.parse(localStorage.getItem(KEY) || '{}')
+} catch {
+  /* stockage indisponible */
+}
+// Les jeux sont réactifs : favoris et installations se répercutent partout et sont conservés.
+export const games = catalog.map((c) => {
+  const g = reactive(build(c))
+  if (g.owned) {
+    if (saved.fav) g.fav = saved.fav.includes(g.id)
+    if (saved.installed) {
+      g.installed = saved.installed.includes(g.id)
+      g.state = g.installed ? 'INSTALLÉ' : 'CLOUD'
+    }
+  }
+  return g
+})
+
+export function saveLibrary() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify({ fav: games.filter((g) => g.fav).map((g) => g.id), installed: games.filter((g) => g.owned && g.installed).map((g) => g.id) }))
+  } catch {
+    /* stockage indisponible */
+  }
+}
 export const byId = Object.fromEntries(games.map((g) => [g.id, g]))
 export const bySlug = byId
 export const myGames = games.filter((g) => g.owned)

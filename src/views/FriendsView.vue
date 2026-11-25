@@ -7,8 +7,30 @@ import SpotlightCard from '../components/bits/SpotlightCard.vue'
 import Magnet from '../components/bits/Magnet.vue'
 import CountUp from '../components/bits/CountUp.vue'
 import { byId, compat, feed, friends } from '../data/games'
+import Modal from '../components/Modal.vue'
+import { play } from '../composables/useLaunch'
+import { toast } from '../composables/useToast'
 import { prefersReduced } from '../composables/motion'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
+const inviteOpen = ref(false)
+const inviteLink = 'https://ga-launcher-hassan.netlify.app/?invite=hassan312'
+const listening = ref(false)
+async function copy() {
+  try {
+    await navigator.clipboard.writeText(inviteLink)
+    toast('Lien d’invitation copié')
+  } catch {
+    toast('Copie impossible : sélectionne le lien et copie-le', 'warn')
+  }
+  inviteOpen.value = false
+}
+function openFriend(f) {
+  if (f.playing) router.push('/jeu/' + f.playing)
+  else toast(f.online ? `${f.name} est en ligne, mais ne joue pas` : `${f.name} est hors ligne (${f.status.toLowerCase()})`)
+}
+const join = () => play(byId['1086940'], 'Connexion à la partie d’Awa…')
 const online = friends.filter((f) => f.online).length
 const ring = (f) => (f.online ? 'conic-gradient(var(--accent), #2BD9FF, #FF3D9A, var(--accent))' : f.away ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.1)')
 const statusCol = (f) => (f.online ? 'text-accent' : f.away ? 'text-amber' : 'text-mute')
@@ -41,12 +63,12 @@ onBeforeUnmount(() => ctx?.revert())
           <h1 class="page-title m-0"><SplitText text="Ton crew" :delay="0.15" /></h1>
         </div>
         <Magnet :padding="30" :strength="0.3">
-          <button type="button" class="h-[50px] rounded-full bg-accent px-6 text-[15px] font-extrabold text-ink">+ Inviter un ami</button>
+          <button type="button" class="h-[50px] rounded-full bg-accent px-6 text-[15px] font-extrabold text-ink" @click="inviteOpen = true">+ Inviter un ami</button>
         </Magnet>
       </div>
 
       <div class="no-scrollbar flex gap-[22px] overflow-x-auto px-1 py-2" role="list" aria-label="Amis">
-        <button v-for="f in friends" :key="f.name" data-friend type="button" role="listitem" class="group flex shrink-0 flex-col items-center gap-2.5 border-0 bg-transparent p-0 text-white">
+        <button v-for="f in friends" :key="f.name" data-friend type="button" role="listitem" @click="openFriend(f)" class="group flex shrink-0 flex-col items-center gap-2.5 border-0 bg-transparent p-0 text-white">
           <span class="relative size-[88px] transition-transform duration-300 group-hover:scale-110">
             <span :data-live-ring="f.online ? '' : null" class="absolute inset-0 rounded-full" :style="{ background: ring(f) }" />
             <span class="absolute inset-1 flex items-center justify-center rounded-full border-4 border-ink font-display text-xl font-extrabold text-ink" :style="{ background: f.col }">{{ f.ini }}</span>
@@ -66,8 +88,11 @@ onBeforeUnmount(() => ctx?.revert())
             <span class="font-display text-[clamp(26px,3.4vw,36px)] font-black leading-none">Awa t’attend sur Baldur’s Gate 3</span>
             <span class="text-[15px] text-[#D7D8E0]">2 / 4 places · Acte 3, Cité de Baldur · lancé il y a 8 min</span>
             <div class="mt-1 flex flex-wrap gap-2.5">
-              <button type="button" class="h-[50px] rounded-full bg-accent px-[26px] text-[15px] font-extrabold text-ink transition-transform hover:scale-105">Rejoindre la partie</button>
-              <button type="button" class="h-[50px] rounded-full border border-white/20 bg-ink/50 px-[22px] text-[15px] font-semibold text-white transition-colors hover:bg-white/10">Écouter</button>
+              <button type="button" class="h-[50px] rounded-full bg-accent px-[26px] text-[15px] font-extrabold text-ink transition-transform hover:scale-105" @click="join">Rejoindre la partie</button>
+              <button type="button" :aria-pressed="listening" class="flex h-[50px] items-center gap-2.5 rounded-full border px-[22px] text-[15px] font-semibold text-white transition-colors" :class="listening ? 'border-accent bg-accent/15' : 'border-white/20 bg-ink/50 hover:bg-white/10'" @click="listening = !listening; toast(listening ? 'Tu écoutes le groupe vocal d’Awa' : 'Écoute terminée')">
+                <span v-if="listening" class="flex h-4 items-end gap-[3px]" aria-hidden="true"><i v-for="n in 4" :key="n" class="eq w-[3px] rounded-sm bg-accent" :style="{ animationDelay: n * 0.12 + 's' }" /></span>
+                {{ listening ? 'En écoute…' : 'Écouter' }}
+              </button>
             </div>
           </div>
         </SpotlightCard>
@@ -101,5 +126,19 @@ onBeforeUnmount(() => ctx?.revert())
         </div>
       </section>
     </main>
+    <Modal :open="inviteOpen" title="Inviter un ami" @close="inviteOpen = false">
+      <p class="m-0 mb-4 text-sm text-soft">Partage ce lien : ton ami rejoint ton crew dès qu’il l’ouvre.</p>
+      <label for="inv" class="sr-only">Lien d’invitation</label>
+      <input id="inv" :value="inviteLink" readonly class="h-12 w-full rounded-full border border-white/[0.14] bg-ink px-5 text-sm text-white" @focus="$event.target.select()" />
+      <div class="mt-5 flex justify-end gap-2.5">
+        <button type="button" class="h-11 rounded-full border border-white/20 bg-transparent px-5 text-sm font-semibold text-white hover:bg-white/10" @click="inviteOpen = false">Fermer</button>
+        <button type="button" class="h-11 rounded-full bg-accent px-6 text-sm font-extrabold text-ink" @click="copy">Copier le lien</button>
+      </div>
+    </Modal>
   </div>
 </template>
+
+<style>
+.eq { height: 100%; transform-origin: bottom; animation: eq 0.8s ease-in-out infinite alternate; }
+@keyframes eq { from { transform: scaleY(0.25); } to { transform: scaleY(1); } }
+</style>

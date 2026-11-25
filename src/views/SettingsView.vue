@@ -6,8 +6,20 @@ import Ring from '../components/bits/Ring.vue'
 import CountUp from '../components/bits/CountUp.vue'
 import { accents, byId, walls } from '../data/games'
 import { setAccent, theme } from '../composables/useTheme'
+import Modal from '../components/Modal.vue'
+import { toast } from '../composables/useToast'
 import { prefersReduced } from '../composables/motion'
 
+const editOpen = ref(false)
+const draft = ref('')
+const openEdit = () => ((draft.value = theme.username), (editOpen.value = true))
+function saveName() {
+  const n = draft.value.trim().slice(0, 20)
+  if (!n) return toast('Le pseudo ne peut pas être vide', 'warn')
+  theme.username = n
+  editOpen.value = false
+  toast('Profil mis à jour')
+}
 const densities = ['Compact', 'Confort', 'Géant']
 const wall = computed(() => byId[theme.wall].wide)
 const toggles = [
@@ -54,11 +66,11 @@ onBeforeUnmount(() => ctx?.revert())
               <span class="m-1 flex size-[calc(100%-8px)] items-center justify-center rounded-full bg-avatar font-display text-4xl font-black">H</span>
             </Ring>
             <div class="flex flex-col gap-1.5">
-              <span class="font-display text-[clamp(26px,4vw,38px)] font-black tracking-[-0.02em]"><SplitText text="hassan312" :delay="0.5" /></span>
+              <span class="font-display text-[clamp(26px,4vw,38px)] font-black tracking-[-0.02em]"><SplitText :text="theme.username" :delay="0.5" /></span>
               <span class="text-sm text-[#D7D8E0]">Niveau <CountUp :to="47" :duration="1.4" :delay="0.6" /> · 412 h de jeu · Dakar</span>
             </div>
           </div>
-          <button type="button" class="h-[46px] rounded-full border border-white/20 bg-ink/55 px-[22px] text-sm font-bold text-white transition-colors hover:bg-white/10">Modifier le profil</button>
+          <button type="button" class="h-[46px] rounded-full border border-white/20 bg-ink/55 px-[22px] text-sm font-bold text-white transition-colors hover:bg-white/10" @click="openEdit">Modifier le profil</button>
         </div>
       </section>
 
@@ -132,5 +144,15 @@ onBeforeUnmount(() => ctx?.revert())
         </section>
       </div>
     </main>
+    <Modal :open="editOpen" title="Modifier le profil" @close="editOpen = false">
+      <form @submit.prevent="saveName">
+        <label for="pseudo" class="mb-2 block text-sm font-semibold">Pseudo</label>
+        <input id="pseudo" v-model="draft" maxlength="20" autocomplete="off" class="h-12 w-full rounded-full border border-white/[0.14] bg-ink px-5 text-white focus:border-accent focus:outline-none" />
+        <div class="mt-5 flex justify-end gap-2.5">
+          <button type="button" class="h-11 rounded-full border border-white/20 bg-transparent px-5 text-sm font-semibold text-white hover:bg-white/10" @click="editOpen = false">Annuler</button>
+          <button type="submit" class="h-11 rounded-full bg-accent px-6 text-sm font-extrabold text-ink">Enregistrer</button>
+        </div>
+      </form>
+    </Modal>
   </div>
 </template>

@@ -10,6 +10,7 @@ import ShinyText from '../components/bits/ShinyText.vue'
 import { byId, homeGameIds, moods, weekHours } from '../data/games'
 import { theme } from '../composables/useTheme'
 import TrailerVideo from '../components/TrailerVideo.vue'
+import { install, play } from '../composables/useLaunch'
 import { prefersReduced } from '../composables/motion'
 
 const all = homeGameIds.map((id) => byId[id])
@@ -160,9 +161,9 @@ watch(hero, async () => {
           <Magnet :padding="30" :strength="0.25">
             <span class="relative inline-flex">
               <span data-play-glow aria-hidden="true" class="absolute inset-0 rounded-full bg-accent opacity-25 blur-xl" />
-              <button data-play type="button" class="relative flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink">
+              <button data-play type="button" @click="hero.installed ? play(hero) : install(hero)" class="relative flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6,4 20,12 6,20" /></svg>
-                <ShinyText :speed="4">Jouer</ShinyText>
+                <ShinyText :speed="4">{{ hero.installed ? 'Jouer' : 'Installer' }}</ShinyText>
               </button>
             </span>
           </Magnet>
