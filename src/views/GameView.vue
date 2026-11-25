@@ -12,6 +12,9 @@ import SpotlightCard from '../components/bits/SpotlightCard.vue'
 import TiltedCard from '../components/bits/TiltedCard.vue'
 import TrailerVideo from '../components/TrailerVideo.vue'
 import Requirements from '../components/Requirements.vue'
+import GameMain from '../components/GameMain.vue'
+import GameSide from '../components/GameSide.vue'
+import { extras, loadExtra } from '../composables/useGameExtra'
 import { fmt, games, getGame } from '../data/games'
 import { theme } from '../composables/useTheme'
 import { install, play, showFolder, toggleFav, toggleLibrary, uninstall } from '../composables/useLaunch'
@@ -26,8 +29,11 @@ const current = shallowRef(null)
 const failed = ref(false)
 const EMPTY = { id: '', title: '', cover: '', wide: '', header: '', desc: '', studio: '', year: '', price: '', genres: [], cats: [], shots: [], movies: [], ach: [], req: null, tags: [], moods: [], recs: 0, total: 0, discount: 0, free: false, metacritic: null, owned: false, fav: false, steam: false, local: false, hours: null }
 const game = computed(() => current.value ?? EMPTY)
+const extra = computed(() => extras[game.value.id] || null)
+const extraFailed = computed(() => extras[game.value.id] === false)
 const similar = computed(() => games.filter((g) => g.id !== game.value.id && g.genres.some((x) => game.value.genres.includes(x))).slice(0, 8))
 const st = computed(() => (desktop.available ? desktop.apps[game.value.id] ?? null : null))
+const sizeLabel = computed(() => (st.value?.sizeOnDisk ? (st.value.sizeOnDisk / 1024 ** 3).toFixed(1) + ' Go (sur ton disque)' : game.value.sizeGo ? game.value.sizeGo + ' Go' : ''))
 const buyLabel = computed(() => (game.value.free ? 'Jouer gratuitement' : 'Acheter · ' + (game.value.price || 'sur Steam')))
 const steamUrl = computed(() => `https://store.steampowered.com/app/${game.value.id}`)
 
@@ -84,6 +90,7 @@ watch(() => route.params.id, async (id) => {
 }, { immediate: true })
 watch(current, async (g) => {
   if (!g) return
+  loadExtra(g.id)
   await nextTick()
   window.scrollTo({ top: 0 })
   intro()
@@ -218,6 +225,8 @@ onBeforeUnmount(() => ctx?.revert())
 
       <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <section v-reveal class="flex flex-col gap-4 lg:col-span-2" aria-labelledby="about-h">
+          <!-- Version courte, tant que la fiche complète de Steam n'est pas arrivée (ou indisponible) -->
+          <template v-if="!extra">
           <h2 id="about-h" class="m-0 font-display text-[22px] font-extrabold tracking-[-0.01em]">À propos</h2>
           <BlurText :key="game.id" tag="p" :text="game.desc" :delay="0.2" :stagger="0.02" class="m-0 max-w-[820px] text-base leading-relaxed text-soft" />
           <div class="flex flex-wrap gap-2">
@@ -229,9 +238,13 @@ onBeforeUnmount(() => ctx?.revert())
             <div class="flex flex-col gap-1"><dt class="text-xs text-mute">Taille</dt><dd class="m-0 text-sm font-semibold">{{ st?.sizeOnDisk ? (st.sizeOnDisk / 1024 ** 3).toFixed(1) + " Go (sur ton disque)" : game.sizeGo ? game.sizeGo + " Go" : "—" }}</dd></div>
             <div class="flex flex-col gap-1"><dt class="text-xs text-mute">Prix</dt><dd class="m-0 text-sm font-semibold">{{ game.price || '—' }}</dd></div>
           </dl>
-          <Requirements :req="game.req" :key="game.id" class="mt-8 max-w-[820px]" />
+          </template>
+          <GameMain :game="game" :extra="extra" :failed="extraFailed" class="mt-10" />
+          <Requirements :req="game.req" :key="game.id" class="mt-10 max-w-[820px]" />
         </section>
 
+        <div class="flex flex-col gap-8">
+        <GameSide :game="game" :extra="extra" :size="sizeLabel" />
         <section v-if="game.ach.length" class="flex flex-col gap-4" aria-labelledby="ach-h">
           <h2 id="ach-h" class="m-0 font-display text-[22px] font-extrabold tracking-[-0.01em]">Succès à débloquer</h2>
           <ul class="m-0 flex list-none flex-col gap-2.5 p-0">
@@ -242,6 +255,7 @@ onBeforeUnmount(() => ctx?.revert())
           </ul>
           <span class="text-xs text-mute">{{ game.total }} succès au total sur Steam</span>
         </section>
+        </div>
       </div>
 
       <section v-if="similar.length" class="flex flex-col gap-4" aria-labelledby="sim-h">
