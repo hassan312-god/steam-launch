@@ -6,13 +6,16 @@ on:
   workflow_dispatch:
   push:
     tags: ['v*']
+    branches: ['claude/**'] # construit aussi à chaque modification de l'application de bureau sur cette branche
+    paths: ['desktop/**', 'package.json', 'package-lock.json', '.github/workflows/desktop.yml']
 
 jobs:
   build:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        # Sur un simple push de branche : Windows uniquement (plus rapide). Lancement manuel ou tag : les trois systèmes.
+        os: ${{ github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/') && fromJSON('["windows-latest"]') || fromJSON('["windows-latest","macos-latest","ubuntu-latest"]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
