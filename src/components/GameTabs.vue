@@ -112,7 +112,7 @@ const plats = computed(() => [['windows', 'Windows'], ['mac', 'macOS'], ['linux'
           <ul class="m-0 grid list-none grid-cols-1 gap-4 p-0 md:grid-cols-2 xl:grid-cols-3">
             <li v-for="p in extra.packages" :key="p.id">
               <SpotlightCard class="flex h-full flex-col justify-between gap-6 rounded-3xl border border-accent/25 bg-gradient-to-br from-accent/[0.12] via-panel to-panel p-6">
-                <div class="flex flex-col gap-1.5"><strong class="text-lg leading-snug">{{ p.title }}</strong><span v-if="p.discount" class="w-fit rounded-md bg-hot px-2 py-0.5 text-xs font-extrabold text-ink">-{{ p.discount }} %</span></div>
+                <div class="flex flex-col gap-1.5"><strong class="text-lg leading-snug">{{ p.title }}</strong><span v-if="p.discount" class="w-fit rounded-md bg-accent px-2 py-0.5 text-xs font-extrabold text-ink">-{{ p.discount }} %</span></div>
                 <div class="flex items-end justify-between gap-3">
                   <span class="font-display text-3xl font-black">{{ p.price }}</span>
                   <button v-if="p.free" type="button" class="h-11 rounded-full bg-accent px-5 text-sm font-extrabold text-ink" @click="install(game)">Installer</button>
@@ -130,7 +130,7 @@ const plats = computed(() => [['windows', 'Windows'], ['mac', 'macOS'], ['linux'
               <RouterLink :to="'/jeu/' + d.id" class="group relative block aspect-[16/9] overflow-hidden rounded-3xl bg-panel text-white no-underline shadow-[0_18px_40px_rgba(0,0,0,0.45)]">
                 <img :src="d.header" alt="" loading="lazy" class="absolute inset-0 size-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 <span class="absolute inset-0 bg-gradient-to-t from-ink/95 via-ink/30 to-transparent" />
-                <span v-if="d.discount" class="absolute left-3 top-3 rounded-full bg-hot px-2.5 py-1 text-[11px] font-extrabold text-ink">-{{ d.discount }} %</span>
+                <span v-if="d.discount" class="absolute left-3 top-3 rounded-full bg-accent px-2.5 py-1 text-[11px] font-extrabold text-ink">-{{ d.discount }} %</span>
                 <span class="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4"><strong class="line-clamp-2 text-[15px] leading-snug">{{ d.title }}</strong><span class="shrink-0 rounded-full bg-ink/70 px-3 py-1 text-xs font-extrabold backdrop-blur-md">{{ d.price || '—' }}</span></span>
               </RouterLink>
             </li>
@@ -154,8 +154,8 @@ const plats = computed(() => [['windows', 'Windows'], ['mac', 'macOS'], ['linux'
       <div v-else class="grid grid-cols-1 gap-x-12 gap-y-10 lg:grid-cols-2">
         <div class="flex flex-col gap-8">
           <div v-if="extra?.reviews" class="flex flex-col gap-2.5">
-            <div class="flex items-baseline gap-3"><span class="font-display text-4xl font-black" :class="extra.reviews.percent >= 70 ? 'text-accent' : extra.reviews.percent >= 40 ? 'text-amber' : 'text-hot'">{{ extra.reviews.percent }} %</span><strong>{{ extra.reviews.label }}</strong></div>
-            <div class="flex h-1.5 overflow-hidden rounded-full bg-hot/50"><span class="bg-accent" :style="{ width: extra.reviews.percent + '%' }" /></div>
+            <div class="flex items-baseline gap-3"><span class="font-display text-4xl font-black" :class="extra.reviews.percent >= 70 ? 'text-accent' : extra.reviews.percent >= 40 ? 'text-soft' : 'text-hot'">{{ extra.reviews.percent }} %</span><strong>{{ extra.reviews.label }}</strong></div>
+            <div class="flex h-1.5 overflow-hidden rounded-full bg-white/25"><span class="bg-accent" :style="{ width: extra.reviews.percent + '%' }" /></div>
             <span class="text-xs text-mute">{{ fmt.format(extra.reviews.total) }} évaluations · toutes langues</span>
           </div>
           <dl class="m-0 flex flex-col">

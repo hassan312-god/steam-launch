@@ -26,8 +26,7 @@ const stateOf = (a) => (a.failed ? 'Erreur' : a.queued ? 'En attente' : a.paused
     <main class="shell relative flex flex-col gap-9 pb-20 pt-2">
       <div class="flex flex-wrap items-end justify-between gap-5">
         <div class="flex flex-col gap-2">
-          <span class="eyebrow">Ton client Steam</span>
-          <h1 class="page-title m-0"><SplitText text="Téléchargements" :delay="0.1" /></h1>
+          <h1 class="page-title m-0">Téléchargements</h1>
         </div>
         <div v-if="desktop.available && active.length" class="flex gap-8" aria-live="polite">
           <div class="flex flex-col"><span class="font-display text-3xl font-black leading-none">{{ active.length }}</span><span class="mt-1.5 text-[13px] text-mute">en cours</span></div>
@@ -61,11 +60,11 @@ const stateOf = (a) => (a.failed ? 'Erreur' : a.queued ? 'En attente' : a.paused
               <div class="flex min-w-0 flex-1 flex-col gap-3">
                 <div class="flex items-baseline justify-between gap-4">
                   <RouterLink :to="'/jeu/' + a.appid" class="truncate font-display text-lg font-extrabold text-white no-underline">{{ a.name }}</RouterLink>
-                  <span class="shrink-0 font-display text-2xl font-black tabular-nums" :class="a.paused ? 'text-amber' : 'text-accent'">{{ pct(a) }} %</span>
+                  <span class="shrink-0 font-display text-2xl font-black tabular-nums" :class="a.paused ? 'text-soft' : 'text-accent'">{{ pct(a) }} %</span>
                 </div>
-                <span class="h-2 overflow-hidden rounded-full bg-white/[0.12]" role="progressbar" :aria-valuenow="pct(a)" aria-valuemin="0" aria-valuemax="100" :aria-label="'Progression de ' + a.name"><span class="block h-full rounded-full transition-[width] duration-700" :class="a.paused ? 'bg-amber' : 'bg-accent'" :style="{ width: pct(a) + '%' }" /></span>
+                <span class="h-2 overflow-hidden rounded-full bg-white/[0.12]" role="progressbar" :aria-valuenow="pct(a)" aria-valuemin="0" aria-valuemax="100" :aria-label="'Progression de ' + a.name"><span class="block h-full rounded-full transition-[width] duration-700" :class="a.paused ? 'bg-white/45' : 'bg-accent'" :style="{ width: pct(a) + '%' }" /></span>
                 <dl class="m-0 flex flex-wrap gap-x-8 gap-y-1 text-[13px]">
-                  <div class="flex gap-1.5"><dt class="text-mute">État</dt><dd class="m-0 font-semibold" :class="a.failed ? 'text-hot' : a.paused || a.queued ? 'text-amber' : 'text-white'">{{ stateOf(a) }}</dd></div>
+                  <div class="flex gap-1.5"><dt class="text-mute">État</dt><dd class="m-0 font-semibold" :class="a.failed ? 'text-hot' : a.paused || a.queued ? 'text-soft' : 'text-white'">{{ stateOf(a) }}</dd></div>
                   <div class="flex gap-1.5"><dt class="text-mute">Téléchargé</dt><dd class="m-0 font-semibold tabular-nums">{{ fmtBytes(a.bytesDownloaded) }} / {{ fmtBytes(a.bytesToDownload) }}</dd></div>
                   <div v-if="!a.paused && !a.queued && !a.failed" class="flex gap-1.5"><dt class="text-mute">Vitesse</dt><dd class="m-0 font-semibold tabular-nums">{{ fmtSpeed(a.speed) }}</dd></div>
                   <div v-if="!a.paused && !a.queued && !a.failed" class="flex gap-1.5"><dt class="text-mute">Temps restant</dt><dd class="m-0 font-semibold tabular-nums">{{ fmtEta(a.eta) }}</dd></div>

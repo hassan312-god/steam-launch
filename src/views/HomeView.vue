@@ -5,10 +5,8 @@ import gsap from 'gsap'
 import SplitText from '../components/bits/SplitText.vue'
 import BlurText from '../components/bits/BlurText.vue'
 import CountUp from '../components/bits/CountUp.vue'
-import Magnet from '../components/bits/Magnet.vue'
-import ShinyText from '../components/bits/ShinyText.vue'
 import TrailerVideo from '../components/TrailerVideo.vue'
-import { fmt, getGame, libraryAll, lookup, moods, newReleases as catNew, specials as catSpecials, topSellers as catTop } from '../data/games'
+import { fmt, getGame, libraryAll, lookup, newReleases as catNew, specials as catSpecials, topSellers as catTop } from '../data/games'
 import { displayName } from '../composables/useSteam'
 import { install, play } from '../composables/useLaunch'
 import { desktop, isInstalled } from '../composables/useDesktop'
@@ -113,10 +111,6 @@ watch([auto, hovered], syncProgress)
 let tick, poll
 const onVis = () => { syncProgress(); if (!document.hidden && Date.now() - updatedAt.value > 120000) refresh() }
 
-function pickMood(k) {
-  mood.value = k
-  sel.value = 0
-}
 // Navigation « manette » : flèches gauche / droite pour parcourir les jaquettes.
 function onKey(e) {
   if (e.target.closest?.('input, select, textarea')) return
@@ -154,12 +148,9 @@ onMounted(() => {
   if (prefersReduced()) return
   ctx = gsap.context(() => {
     const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
-    tl.from('[data-mood]', { opacity: 0, y: 14, stagger: 0.06, duration: 0.5 }, 0.4)
-      .from('[data-stat]', { opacity: 0, y: 30, scale: 0.94, stagger: 0.12, duration: 0.8 }, 0.5)
-      .from('[data-chip]', { opacity: 0, y: 16, stagger: 0.1, duration: 0.6 }, 0.9)
-      .from('[data-play]', { opacity: 0, scale: 0.8, duration: 0.7, ease: 'back.out(1.8)' }, 1.0)
-    gsap.to('[data-play-glow]', { opacity: 0.55, scale: 1.12, duration: 1.4, ease: 'sine.inOut', yoyo: true, repeat: -1 })
-  }, root.value)
+    tl.from('[data-chip]', { opacity: 0, y: 16, stagger: 0.1, duration: 0.6 }, 0.9)
+      .from('[data-play]', { opacity: 0, y: 10, duration: 0.6 }, 0.9)
+      }, root.value)
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)
@@ -191,71 +182,46 @@ watch(hero, async () => {
     <div aria-hidden="true" class="absolute inset-0 bg-gradient-to-r from-ink/85 from-0% via-ink/35 via-45% to-ink/10" />
     <div aria-hidden="true" class="absolute inset-0" style="background: linear-gradient(180deg, rgba(6,6,10,0.7) 0%, rgba(6,6,10,0) 20%, rgba(6,6,10,0) 45%, rgba(6,6,10,0.92) 80%, #06060A 100%)" />
 
-    <section class="relative flex flex-wrap items-start justify-between gap-6 shell pt-3">
-      <div class="flex flex-col gap-3.5">
-        <span class="eyebrow tracking-[0.2em]">{{ hello }}</span>
-        <BlurText tag="span" text="Envie de quoi ce soir ?" :delay="0.3" class="font-display text-[26px] font-extrabold" />
-        <div class="flex flex-wrap gap-2" role="group" aria-label="Humeur">
-          <button
-            v-for="[k, label] in moods"
-            :key="k"
-            type="button"
-            data-mood
-            :aria-pressed="mood === k"
-            class="h-10 rounded-full border px-4 text-sm font-semibold backdrop-blur-md transition-colors duration-300"
-            :class="mood === k ? 'border-accent bg-accent text-ink' : 'border-white/15 bg-ink/50 text-white hover:border-white/40'"
-            @click="pickMood(k)"
-          >{{ label }}</button>
-        </div>
-      </div>
-
-      <div class="flex flex-wrap gap-3">
-        <RouterLink data-stat to="/bibliotheque" class="glass flex w-[200px] flex-col gap-2.5 rounded-[22px] p-[18px] text-white no-underline backdrop-blur-xl transition-transform hover:-translate-y-1">
-          <span class="text-xs font-semibold text-soft">Ma bibliothèque</span>
-          <span class="font-display text-[26px] font-extrabold"><CountUp :to="libraryAll.length" :duration="1.2" :delay="0.6" /> <span class="text-base">jeu{{ libraryAll.length > 1 ? 'x' : '' }}</span></span>
-          <span class="text-xs text-mute">{{ libraryAll.length ? 'Voir ma collection' : 'Ajoute des jeux depuis leur fiche' }}</span>
-        </RouterLink>
-        <RouterLink data-stat to="/magasin" class="glass flex w-[200px] flex-col gap-2.5 rounded-[22px] p-[18px] text-white no-underline backdrop-blur-xl transition-transform hover:-translate-y-1">
-          <span class="text-xs font-semibold text-soft">Promotions Steam</span>
-          <span class="font-display text-[26px] font-extrabold"><CountUp :to="specialsAll.length" :duration="1.2" :delay="0.8" /> <span class="text-base">en solde</span></span>
-          <span class="text-xs text-mute">Jusqu’à -{{ maxDiscount }} %</span>
-        </RouterLink>
-      </div>
+    <section class="relative flex flex-wrap items-center justify-between gap-x-8 gap-y-2 shell pt-3 text-sm text-soft">
+      <span>{{ hello }}</span>
+      <span class="flex flex-wrap gap-x-6 gap-y-1">
+        <RouterLink to="/bibliotheque" class="text-white no-underline hover:underline">Ma bibliothèque · {{ libraryAll.length }} jeu{{ libraryAll.length > 1 ? 'x' : '' }}</RouterLink>
+        <RouterLink v-if="specialsAll.length" to="/magasin" class="text-white no-underline hover:underline">{{ specialsAll.length }} promotions · jusqu’à -{{ maxDiscount }} %</RouterLink>
+      </span>
     </section>
 
     <section class="relative mt-auto flex flex-col gap-6 pb-8 pt-20">
       <div class="flex flex-wrap items-end justify-between gap-6 shell">
         <div class="flex max-w-[min(62vw,1100px)] flex-col gap-4">
-          <span data-tag class="self-start rounded-full bg-white/[0.14] px-3 py-1.5 text-xs font-bold tracking-[0.14em] backdrop-blur-md">{{ tagFor(hero.id, hero.discount) }}</span>
+          <span data-tag class="self-start text-sm font-semibold text-soft">{{ tagFor(hero.id, hero.discount) }}</span>
           <h1 class="m-0 font-display text-[clamp(36px,5.2vw,96px)] font-black uppercase leading-[0.92] tracking-[-0.03em]">
             <SplitText :text="hero.title" :stagger="0.025" />
           </h1>
           <div class="flex flex-wrap gap-2.5 text-sm">
-            <span data-chip class="rounded-[14px] border border-white/[0.12] bg-ink/50 px-3.5 py-2.5"><span class="text-soft">Sortie · </span><strong>{{ hero.year || '—' }}</strong></span>
-            <span data-chip class="rounded-[14px] border border-white/[0.12] bg-ink/50 px-3.5 py-2.5"><span class="text-soft">Prix · </span><strong>{{ hero.price || '—' }}</strong><span v-if="hero.discount" class="ml-2 rounded-md bg-hot px-1.5 py-0.5 text-xs font-extrabold text-ink">-{{ hero.discount }} %</span></span>
-            <span v-if="hero.metacritic" data-chip class="flex items-center gap-2 rounded-[14px] border border-white/[0.12] bg-ink/50 px-3.5 py-2.5">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="#F5C451" aria-hidden="true"><polygon points="12,2 15,9 22,9.5 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9.5 9,9" /></svg>
+            <span data-chip class="rounded-xl border border-white/[0.12] bg-ink/50 px-3.5 py-2.5"><span class="text-soft">Sortie · </span><strong>{{ hero.year || '—' }}</strong></span>
+            <span data-chip class="rounded-xl border border-white/[0.12] bg-ink/50 px-3.5 py-2.5"><span class="text-soft">Prix · </span><strong>{{ hero.price || '—' }}</strong><span v-if="hero.discount" class="ml-2 rounded-md bg-accent px-1.5 py-0.5 text-xs font-extrabold text-ink">-{{ hero.discount }} %</span></span>
+            <span v-if="hero.metacritic" data-chip class="flex items-center gap-2 rounded-xl border border-white/[0.12] bg-ink/50 px-3.5 py-2.5">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12,2 15,9 22,9.5 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9.5 9,9" /></svg>
               <strong>Metacritic {{ hero.metacritic }}</strong>
             </span>
-            <span v-else-if="hero.recs" data-chip class="rounded-[14px] border border-white/[0.12] bg-ink/50 px-3.5 py-2.5"><strong>{{ fmt.format(hero.recs) }}</strong><span class="text-soft"> avis Steam</span></span>
+            <span v-else-if="hero.recs" data-chip class="rounded-xl border border-white/[0.12] bg-ink/50 px-3.5 py-2.5"><strong>{{ fmt.format(hero.recs) }}</strong><span class="text-soft"> avis Steam</span></span>
           </div>
         </div>
         <div class="flex items-center gap-3">
           <button type="button" class="flex size-[60px] items-center justify-center rounded-full border border-white/[0.16] bg-ink/50 text-white backdrop-blur-md transition-colors hover:bg-white/10" aria-label="Jeu précédent" @click="next(-1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg></button>
-          <Magnet :padding="30" :strength="0.25">
+          <span class="inline-flex">
             <span class="relative inline-flex">
               <span data-play-glow aria-hidden="true" class="absolute inset-0 rounded-full bg-accent opacity-25 blur-xl" />
               <button v-if="hero.owned && (!desktop.available || isInstalled(hero.id))" data-play type="button" class="relative flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="play(hero)">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6,4 20,12 6,20" /></svg>
-                <ShinyText :speed="4">{{ hero.installed ? 'Jouer' : 'Installer' }}</ShinyText>
+                <span>{{ hero.installed ? 'Jouer' : 'Installer' }}</span>
               </button>
-              <button v-else-if="hero.owned" data-play type="button" class="relative flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="install(hero)"><ShinyText :speed="4">Installer</ShinyText></button>
+              <button v-else-if="hero.owned" data-play type="button" class="relative flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="install(hero)"><span>Installer</span></button>
               <RouterLink v-else data-play :to="'/jeu/' + hero.id" class="relative flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink no-underline">
-                <ShinyText :speed="4">Voir la fiche</ShinyText>
+                <span>Voir la fiche</span>
               </RouterLink>
             </span>
-          </Magnet>
-          <RouterLink :to="'/jeu/' + hero.id" aria-label="Voir la fiche du jeu" class="flex size-[60px] items-center justify-center rounded-full border border-white/[0.16] bg-ink/50 text-xl font-extrabold text-white no-underline transition-colors hover:bg-white/10">···</RouterLink>
+          </span>
           <button type="button" class="flex size-[60px] items-center justify-center rounded-full border border-white/[0.16] bg-ink/50 text-white backdrop-blur-md transition-colors hover:bg-white/10" aria-label="Jeu suivant" @click="next(1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg></button>
         </div>
       </div>
@@ -291,7 +257,6 @@ watch(hero, async () => {
           Tout voir
         </RouterLink>
       </div>
-      <p class="shell text-xs text-mute">Astuce : flèches ← → pour parcourir · le défilement se met en pause au survol.</p>
     </section>
   </section>
 
@@ -306,9 +271,9 @@ watch(hero, async () => {
       <div class="flex items-baseline justify-between gap-4"><h3 :id="'h-' + s.id" class="m-0 font-display text-[22px] font-extrabold tracking-[-0.01em]">{{ s.title }}</h3><span class="flex items-center gap-4"><span class="hidden text-sm text-mute sm:inline">{{ s.sub }}</span><button type="button" :aria-expanded="opened.has(s.id)" class="h-9 rounded-full border border-white/[0.18] bg-transparent px-4 text-[13px] font-bold text-white hover:bg-white/10" @click="toggle(s.id)">{{ opened.has(s.id) ? 'Réduire' : 'Voir plus' }}</button></span></div>
       <div :class="opened.has(s.id) ? 'grid grid-cols-2 gap-5 px-1 py-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6' : 'no-scrollbar flex gap-[18px] overflow-x-auto px-1 py-3'">
         <RouterLink v-for="i in s.items" :key="i.id" :to="'/jeu/' + i.id" class="group flex shrink-0 flex-col gap-3 text-white no-underline" :class="opened.has(s.id) ? '' : 'w-[180px] 2xl:w-[220px]'">
-          <div class="relative aspect-[2/3] overflow-hidden rounded-[22px] bg-panel shadow-[0_18px_40px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:-translate-y-1.5">
+          <div class="relative aspect-[2/3] overflow-hidden rounded-[20px] bg-panel shadow-[0_18px_40px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:-translate-y-1.5">
             <img :src="i.cover" alt="" loading="lazy" class="block size-full object-cover transition-transform duration-700 group-hover:scale-110" @error="$event.target.src = i.header" />
-            <span v-if="i.discount" class="absolute left-2.5 top-2.5 rounded-full bg-hot px-[9px] py-[5px] text-[11px] font-extrabold text-ink">-{{ i.discount }} %</span>
+            <span v-if="i.discount" class="absolute left-2.5 top-2.5 rounded-full bg-accent px-[9px] py-[5px] text-[11px] font-extrabold text-ink">-{{ i.discount }} %</span>
           </div>
           <span class="text-[15px] font-bold">{{ i.title }}</span>
           <span class="-mt-1.5 text-[13px] text-mute">{{ i.free ? 'Gratuit' : i.price || 'Prix à venir' }}</span>

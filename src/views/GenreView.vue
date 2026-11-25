@@ -92,8 +92,8 @@ function enter(el, done) {
     <main class="shell relative flex flex-col gap-7 pb-16 pt-2">
       <div data-head class="flex flex-col gap-3">
         <RouterLink to="/magasin" class="flex w-fit items-center gap-2 text-sm font-semibold text-soft no-underline hover:text-white">‹ Magasin</RouterLink>
-        <span class="eyebrow"><template v-if="total"><CountUp :to="total" :duration="1.4" /> jeux sur Steam</template><template v-else>Genre</template></span>
-        <h1 class="page-title m-0"><SplitText :key="label" :text="label" :delay="0.1" /></h1>
+        <span v-if="total" class="eyebrow"><CountUp :to="total" :duration="1.4" /> jeux sur Steam</span>
+        <h1 class="page-title m-0">{{ label }}</h1>
       </div>
 
       <p v-if="!tagId" class="m-0 rounded-3xl border border-dashed border-white/20 p-8 text-mute">Ce genre n’existe pas. <RouterLink to="/magasin" class="font-bold text-accent">Retour au magasin</RouterLink></p>
@@ -111,7 +111,7 @@ function enter(el, done) {
             <RouterLink v-for="(g, i) in shown" :key="g.id" :data-i="i" :to="'/jeu/' + g.id" class="group flex flex-col gap-2.5 text-white no-underline">
               <div class="relative aspect-[2/3] overflow-hidden rounded-[20px] bg-panel shadow-[0_18px_40px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:-translate-y-1.5">
                 <img :src="g.cover" alt="" loading="lazy" class="block size-full object-cover transition-transform duration-700 group-hover:scale-110" @error="$event.target.src = g.header" />
-                <span v-if="g.discount" class="absolute left-2.5 top-2.5 rounded-full bg-hot px-[9px] py-[5px] text-[11px] font-extrabold text-ink">-{{ g.discount }} %</span>
+                <span v-if="g.discount" class="absolute left-2.5 top-2.5 rounded-full bg-accent px-[9px] py-[5px] text-[11px] font-extrabold text-ink">-{{ g.discount }} %</span>
                 <span class="absolute bottom-2.5 left-2.5 rounded-full bg-ink/80 px-2.5 py-1 text-[11px] font-extrabold backdrop-blur-md" :class="g.price === 'Gratuit' ? 'text-accent' : 'text-white'">{{ g.price }}</span>
               </div>
               <span class="text-[15px] font-bold leading-tight">{{ g.title }}</span>

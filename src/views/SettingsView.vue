@@ -59,7 +59,7 @@ onBeforeUnmount(() => ctx?.revert())
 <template>
   <div ref="root" class="relative min-h-screen overflow-hidden bg-ink pt-[var(--header-h,100px)]">
     <main class="relative flex flex-col gap-6 shell pb-14 pt-2">
-      <section data-banner class="relative flex min-h-[260px] items-end overflow-hidden rounded-[28px]" aria-label="Profil">
+      <section data-banner class="relative flex min-h-[260px] items-end overflow-hidden rounded-[20px]" aria-label="Profil">
         <div class="absolute inset-0 overflow-hidden">
           <Transition :css="false" @enter="wallEnter" @leave="wallLeave">
             <img :key="theme.wall" :src="wall" alt="" class="absolute inset-0 size-full object-cover" />
@@ -81,7 +81,7 @@ onBeforeUnmount(() => ctx?.revert())
       <section data-panel class="card flex flex-wrap items-center justify-between gap-5 p-7" aria-labelledby="steam-h">
         <div class="flex min-w-0 flex-col gap-1">
           <h2 id="steam-h" class="m-0 font-display text-[22px] font-black">Compte Steam</h2>
-          <p v-if="steam.status === 'in'" class="m-0 text-sm text-soft">Connecté en tant que <strong class="text-white">{{ steam.profile.name }}</strong> · {{ steam.count }} jeu{{ steam.count > 1 ? 'x' : '' }} synchronisé{{ steam.count > 1 ? 's' : '' }}<span v-if="!steam.gamesVisible" class="text-amber"> · détails de jeu privés</span></p>
+          <p v-if="steam.status === 'in'" class="m-0 text-sm text-soft">Connecté en tant que <strong class="text-white">{{ steam.profile.name }}</strong> · {{ steam.count }} jeu{{ steam.count > 1 ? 'x' : '' }} synchronisé{{ steam.count > 1 ? 's' : '' }}<span v-if="!steam.gamesVisible" class="text-soft"> · détails de jeu privés</span></p>
           <p v-else-if="steam.status === 'not_configured'" class="m-0 text-sm text-soft">La connexion Steam n’est pas encore configurée sur ce site.</p>
           <p v-else-if="steam.status === 'unavailable'" class="m-0 text-sm text-soft">Connexion Steam indisponible ici (disponible sur le site en ligne).</p>
           <p v-else class="m-0 text-sm text-soft">Retrouve tes vrais jeux et tes heures de jeu. Ton profil et tes détails de jeu doivent être publics.</p>
@@ -156,7 +156,7 @@ onBeforeUnmount(() => ctx?.revert())
                 type="button"
                 :aria-label="name"
                 :aria-pressed="theme.wall === slug"
-                class="h-[76px] overflow-hidden rounded-[14px] border-0 bg-avatar p-0 transition-all duration-300 hover:scale-105"
+                class="h-[76px] overflow-hidden rounded-xl border-0 bg-avatar p-0 transition-all duration-300 hover:scale-105"
                 :class="theme.wall === slug ? 'shadow-[0_0_0_3px_var(--accent)]' : ''"
                 @click="theme.wall = slug"
               ><img :src="byId[slug].wide" alt="" class="block size-full object-cover" /></button>
