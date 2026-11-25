@@ -2,7 +2,7 @@
 // Page Téléchargements : l'état réel de ton client Steam (octets, vitesse, temps restant), sans quitter le launcher.
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
-import { steam } from '../composables/useSteam'
+import { connectSteam, steam } from '../composables/useSteam'
 import PageBackdrop from '../components/PageBackdrop.vue'
 import SplitText from '../components/bits/SplitText.vue'
 import { cmd, desktop, downloads, fmtBytes, fmtEta, fmtSpeed } from '../composables/useDesktop'
@@ -42,12 +42,18 @@ const stateOf = (a) => (a.failed ? 'Erreur' : a.queued ? 'En attente' : a.paused
       </section>
 
       <template v-else>
-        <div v-if="desktop.canCmd" class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/[0.07] bg-panel px-5 py-4">
-          <span v-if="desktop.cmd.account" class="text-sm text-soft">Téléchargements du launcher · compte <strong class="text-white">{{ desktop.cmd.account }}</strong></span>
-          <span v-else class="text-sm text-soft">{{ steam.status === 'in' ? 'Tu es connecté à Steam sur le site, mais télécharger ici demande ton mot de passe, une seule fois.' : 'Pour télécharger directement dans le launcher, avec pause et reprise, connecte ton compte Steam.' }}</span>
-          <button v-if="desktop.cmd.account" type="button" class="h-10 rounded-full border border-white/20 bg-transparent px-4 text-sm font-semibold text-white hover:bg-white/10" @click="cmd.logout()">Se déconnecter</button>
-          <button v-else type="button" class="h-10 rounded-full bg-accent px-5 text-sm font-extrabold text-ink" @click="desktop.loginAsk = { game: null }">Entrer mon mot de passe</button>
+        <!-- Compte : on lit la connexion Steam existante, on ne redemande rien -->
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/[0.07] bg-panel px-5 py-4">
+          <span v-if="steam.status === 'in'" class="flex items-center gap-3 text-sm text-soft">
+            <img v-if="steam.profile?.avatar" :src="steam.profile.avatar" alt="" class="size-9 rounded-full" />
+            <span>Connecté à Steam en tant que <strong class="text-white">{{ steam.profile?.name }}</strong>. Tes installations passent par ton client Steam et sont suivies ici en direct.</span>
+          </span>
+          <span v-else-if="steam.status === 'loading'" class="text-sm text-soft">Vérification de ta connexion Steam…</span>
+          <span v-else class="text-sm text-soft">Tu n’es pas connecté à Steam dans le launcher : ta bibliothèque et tes heures de jeu n’apparaissent pas.</span>
+          <button v-if="steam.status === 'out'" type="button" class="h-10 rounded-full bg-accent px-5 text-sm font-extrabold text-ink" @click="connectSteam">Se connecter avec Steam</button>
+          <span v-else-if="desktop.canCmd && desktop.cmd.account" class="flex items-center gap-3 text-sm text-soft">Téléchargement intégré actif · {{ desktop.cmd.account }}<button type="button" class="h-9 rounded-full border border-white/20 bg-transparent px-4 text-sm font-semibold text-white hover:bg-white/10" @click="cmd.logout()">Désactiver</button></span>
         </div>
+        <p v-if="steam.status === 'in' && desktop.canCmd && !desktop.cmd.account" class="m-0 text-xs text-mute">Pause et reprise dans le launcher : <button type="button" class="border-0 bg-transparent p-0 text-xs font-semibold text-soft underline hover:text-white" @click="desktop.loginAsk = { game: null }">activer le téléchargement intégré</button> (mot de passe demandé une fois, facultatif).</p>
         <p v-if="!desktop.steamFound && !desktop.canCmd" class="m-0 rounded-3xl border border-dashed border-white/20 p-8 text-soft">Steam est introuvable sur cet ordinateur : installe le client Steam et connecte-toi dedans.</p>
 
         <section v-if="desktop.steamFound || desktop.canCmd" class="flex flex-col gap-4" aria-labelledby="dl-h">

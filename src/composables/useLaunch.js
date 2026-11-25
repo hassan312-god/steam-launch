@@ -21,16 +21,16 @@ export function play(game) {
 }
 
 export function install(game) {
-  if (desktop.available && desktop.canCmd) {
-    // Téléchargement dans le launcher : il faut un compte Steam connecté (une seule fois).
-    if (!desktop.cmd.account) return (desktop.loginAsk = { game })
+  // Par défaut : le client Steam déjà connecté (aucun mot de passe). Si l'utilisateur a connecté son compte au téléchargement
+  // intégré (facultatif, page Téléchargements), le launcher télécharge lui-même avec pause et reprise.
+  if (desktop.available && desktop.canCmd && desktop.cmd.account) {
     window.launcher.cmd.install(game.id, game.title)
     toast(`Téléchargement de ${game.title} lancé`)
     return
   }
   if (desktop.available) window.launcher.install(game.id)
   else openSteam(`steam://install/${game.id}`)
-  toast(desktop.available ? `Téléchargement de ${game.title} demandé` : `Installation de ${game.title} demandée au client Steam`)
+  toast(desktop.available ? `${game.title} : demande envoyée à ton client Steam` : `Installation de ${game.title} demandée au client Steam`)
 }
 
 // Repli : confier l'installation au client Steam (ouvre sa fenêtre).
