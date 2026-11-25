@@ -5,7 +5,7 @@ const { app, BrowserWindow, ipcMain, shell, Menu, Tray, Notification, nativeImag
 const fs = require('node:fs')
 const { autoUpdater } = require('electron-updater')
 const path = require('node:path')
-const { scan, libraries } = require('./steam-local.cjs')
+const { scan, libraries, lastAccount } = require('./steam-local.cjs')
 const { SteamCmd } = require('./steamcmd.cjs')
 
 const URL_APP = process.env.GA_URL || 'https://ga-launcher-hassan.netlify.app'
@@ -147,6 +147,7 @@ const getCmd = () => {
   cmd.on('failed', (j) => toast('Téléchargement interrompu', `${j.name} : ${j.message}`))
   return cmd
 }
+ipcMain.handle('steamcmd:suggest', () => lastAccount())
 ipcMain.handle('steamcmd:state', () => getCmd().state())
 ipcMain.handle('steamcmd:login', (_e, { user, password } = {}) => getCmd().login(String(user || ''), String(password || '')))
 ipcMain.handle('steamcmd:code', (_e, code) => getCmd().submitCode(String(code || '')))
