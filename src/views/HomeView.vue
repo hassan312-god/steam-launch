@@ -10,7 +10,8 @@ import ShinyText from '../components/bits/ShinyText.vue'
 import TrailerVideo from '../components/TrailerVideo.vue'
 import { fmt, getGame, libraryAll, lookup, moods, newReleases as catNew, specials as catSpecials, topSellers as catTop } from '../data/games'
 import { displayName } from '../composables/useSteam'
-import { play } from '../composables/useLaunch'
+import { install, play } from '../composables/useLaunch'
+import { desktop, isInstalled } from '../composables/useDesktop'
 import { theme } from '../composables/useTheme'
 import { prefersReduced } from '../composables/motion'
 
@@ -197,10 +198,11 @@ watch(hero, async () => {
           <Magnet :padding="30" :strength="0.25">
             <span class="relative inline-flex">
               <span data-play-glow aria-hidden="true" class="absolute inset-0 rounded-full bg-accent opacity-25 blur-xl" />
-              <button v-if="hero.owned" data-play type="button" class="relative flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="play(hero)">
+              <button v-if="hero.owned && (!desktop.available || isInstalled(hero.id))" data-play type="button" class="relative flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="play(hero)">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6,4 20,12 6,20" /></svg>
                 <ShinyText :speed="4">{{ hero.installed ? 'Jouer' : 'Installer' }}</ShinyText>
               </button>
+              <button v-else-if="hero.owned" data-play type="button" class="relative flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="install(hero)"><ShinyText :speed="4">Installer</ShinyText></button>
               <RouterLink v-else data-play :to="'/jeu/' + hero.id" class="relative flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink no-underline">
                 <ShinyText :speed="4">Voir la fiche</ShinyText>
               </RouterLink>

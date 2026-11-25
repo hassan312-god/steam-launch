@@ -1,4 +1,5 @@
 import { saveLibrary, toggleOwned } from '../data/games'
+import { desktop } from './useDesktop'
 import { toast } from './useToast'
 
 // Déclenche le client Steam installé sur l'appareil (protocole steam://) SANS quitter le launcher :
@@ -11,16 +12,26 @@ function openSteam(url) {
   setTimeout(() => f.remove(), 3000)
 }
 
-// Si le jeu n'est pas installé, le client Steam propose directement de l'installer.
+// Application de bureau : le launcher pilote directement le client Steam et suit l'état réel.
+// Navigateur : on déclenche le client Steam via l'iframe invisible ci-dessus.
 export function play(game) {
-  openSteam(`steam://run/${game.id}`)
-  toast(`${game.title} : demande envoyée au client Steam`)
+  if (desktop.available) window.launcher.play(game.id)
+  else openSteam(`steam://run/${game.id}`)
+  toast(`Lancement de ${game.title}…`)
 }
 
 export function install(game) {
-  openSteam(`steam://install/${game.id}`)
-  toast(`Installation de ${game.title} demandée au client Steam`)
+  if (desktop.available) window.launcher.install(game.id)
+  else openSteam(`steam://install/${game.id}`)
+  toast(desktop.available ? `Téléchargement de ${game.title} demandé` : `Installation de ${game.title} demandée au client Steam`)
 }
+
+export function uninstall(game) {
+  if (desktop.available) window.launcher.uninstall(game.id)
+  toast(`Désinstallation de ${game.title} demandée`)
+}
+
+export const showFolder = (game) => desktop.available && window.launcher.showFolder(game.id)
 
 export function toggleFav(g) {
   g.fav = !g.fav

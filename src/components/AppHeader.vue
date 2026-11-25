@@ -1,9 +1,11 @@
 <script setup>
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import gsap from 'gsap'
 import Logo from './Logo.vue'
 import { displayName, steam } from '../composables/useSteam'
+import { desktop, downloads } from '../composables/useDesktop'
+import DownloadsPanel from './DownloadsPanel.vue'
 import SearchOverlay from './SearchOverlay.vue'
 import NotificationsPanel from './NotificationsPanel.vue'
 import { prefersReduced } from '../composables/motion'
@@ -20,13 +22,17 @@ const searchOpen = ref(false)
 const notifOpen = ref(false)
 const unread = ref(true)
 const notifBox = ref(null)
+const dlOpen = ref(false)
+const dlBox = ref(null)
+const active = computed(() => downloads())
 // Ctrl/Cmd + K ouvre la recherche ; un clic en dehors ferme les notifications.
 function onGlobalKey(e) {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') (e.preventDefault(), (searchOpen.value = !searchOpen.value))
-  else if (e.key === 'Escape') notifOpen.value = false
+  else if (e.key === 'Escape') (notifOpen.value = false), (dlOpen.value = false)
 }
 function onDocClick(e) {
   if (notifOpen.value && !notifBox.value?.contains(e.target)) notifOpen.value = false
+  if (dlOpen.value && !dlBox.value?.contains(e.target)) dlOpen.value = false
 }
 const header = ref(null)
 const nav = ref(null)
@@ -70,6 +76,7 @@ onBeforeUnmount(() => {
 watch(() => route.path, () => {
   movePill(true)
   notifOpen.value = false
+  dlOpen.value = false
 })
 </script>
 
@@ -94,6 +101,13 @@ watch(() => route.path, () => {
       <button type="button" aria-label="Rechercher (Ctrl+K)" aria-haspopup="dialog" class="glass-btn flex size-11 items-center justify-center rounded-full text-white transition-transform hover:scale-110" @click="searchOpen = true">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.5" y2="16.5" /></svg>
       </button>
+      <div v-if="desktop.available" ref="dlBox" class="relative">
+        <button type="button" aria-label="Téléchargements" aria-haspopup="dialog" :aria-expanded="dlOpen" class="glass-btn relative flex size-11 items-center justify-center rounded-full text-white transition-transform hover:scale-110" @click="dlOpen = !dlOpen">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" /></svg>
+          <span v-if="active.length" class="absolute -right-0.5 -top-0.5 flex size-[18px] items-center justify-center rounded-full bg-accent text-[11px] font-extrabold text-ink">{{ active.length }}</span>
+        </button>
+        <DownloadsPanel :open="dlOpen" :list="active" @close="dlOpen = false" />
+      </div>
       <div ref="notifBox" class="relative">
         <button type="button" aria-label="Notifications" aria-haspopup="dialog" :aria-expanded="notifOpen" class="glass-btn relative flex size-11 items-center justify-center rounded-full text-white transition-transform hover:scale-110" @click="notifOpen = !notifOpen">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>

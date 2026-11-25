@@ -7,6 +7,7 @@ import { accents, byId, libraryAll, walls } from '../data/games'
 import { setAccent, theme } from '../composables/useTheme'
 import Modal from '../components/Modal.vue'
 import { toast } from '../composables/useToast'
+import { desktop, installedCount } from '../composables/useDesktop'
 import { connectSteam, disconnectSteam, displayName, loadSteam, steam } from '../composables/useSteam'
 import { prefersReduced } from '../composables/motion'
 
@@ -86,6 +87,16 @@ onBeforeUnmount(() => ctx?.revert())
           </template>
           <a v-else-if="steam.status === 'out'" href="/api/steam/login" @click.prevent="connectSteam" class="flex h-11 items-center rounded-full bg-accent px-6 text-sm font-extrabold text-ink no-underline">Se connecter avec Steam</a>
         </div>
+      </section>
+
+      <section data-panel class="card flex flex-wrap items-center justify-between gap-5 p-7" aria-labelledby="app-h">
+        <div class="flex min-w-0 flex-col gap-1">
+          <h2 id="app-h" class="m-0 font-display text-[22px] font-black">Application de bureau</h2>
+          <p v-if="desktop.available && desktop.steamFound" class="m-0 text-sm text-soft"><strong class="text-accent">Steam détecté</strong> sur cet ordinateur · {{ desktop.libraries }} bibliothèque{{ desktop.libraries > 1 ? 's' : '' }} · {{ installedCount() }} jeu{{ installedCount() > 1 ? 'x' : '' }} installé{{ installedCount() > 1 ? 's' : '' }}</p>
+          <p v-else-if="desktop.available" class="m-0 text-sm text-soft">Steam est introuvable sur cet ordinateur : installe le client Steam et connecte-toi dedans pour installer et lancer tes jeux d’ici.</p>
+          <p v-else class="m-0 max-w-[620px] text-sm text-soft">Pour installer, suivre les téléchargements et lancer tes jeux sans quitter le launcher, utilise l’application de bureau (Windows, macOS, Linux). Elle lit l’état réel de ton client Steam.</p>
+        </div>
+        <a v-if="!desktop.available" href="https://github.com/hassan312-god/steam-launch/releases" target="_blank" rel="noopener noreferrer" class="flex h-11 items-center rounded-full bg-accent px-6 text-sm font-extrabold text-ink no-underline">Télécharger l’application</a>
       </section>
 
       <div class="flex flex-wrap items-start gap-5">

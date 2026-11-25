@@ -6,11 +6,13 @@ import AppHeader from './components/AppHeader.vue'
 import Toaster from './components/Toaster.vue'
 import { prefersReduced } from './composables/motion'
 import { loadSteam, steam } from './composables/useSteam'
+import { startDesktop } from './composables/useDesktop'
 import { toast } from './composables/useToast'
 
 const route = useRoute()
 const router = useRouter()
 onMounted(async () => {
+  startDesktop()
   await loadSteam()
   const q = new URLSearchParams(location.search).get('steam')
   if (q === 'ok' && steam.status === 'in') toast(`Connecté à Steam : ${steam.count} jeu${steam.count > 1 ? 'x' : ''} synchronisé${steam.count > 1 ? 's' : ''}`)

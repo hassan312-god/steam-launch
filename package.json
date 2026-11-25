@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "desktop": "electron .",
+    "desktop:dev": "GA_URL=http://localhost:5173 electron .",
+    "desktop:build": "electron-builder --publish never"
   },
   "dependencies": {
     "gsap": "^3.15.1",
@@ -17,7 +20,49 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.5",
     "@vitejs/plugin-vue": "^6.0.11",
+    "electron": "^45.5.0",
+    "electron-builder": "^26.18.0",
     "tailwindcss": "^4.3.5",
     "vite": "^8.3.8"
+  },
+  "main": "desktop/main.cjs",
+  "description": "G.A Launcher : launcher de jeux Steam (web + application de bureau)",
+  "author": "G.A",
+  "build": {
+    "appId": "com.ga.launcher",
+    "productName": "G.A Launcher",
+    "artifactName": "GA-Launcher-${version}-${os}.${ext}",
+    "directories": {
+      "output": "release",
+      "buildResources": "desktop"
+    },
+    "files": [
+      "desktop/**",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "desktop/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.games",
+      "icon": "desktop/icon.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Game",
+      "icon": "desktop/icon.png"
+    }
   }
 }

@@ -14,7 +14,9 @@ import TrailerVideo from '../components/TrailerVideo.vue'
 import Requirements from '../components/Requirements.vue'
 import { fmt, games, getGame } from '../data/games'
 import { theme } from '../composables/useTheme'
-import { install, play, toggleFav, toggleLibrary } from '../composables/useLaunch'
+import { install, play, showFolder, toggleFav, toggleLibrary, uninstall } from '../composables/useLaunch'
+import { desktop } from '../composables/useDesktop'
+import DownloadBar from '../components/DownloadBar.vue'
 import { prefersReduced } from '../composables/motion'
 
 const route = useRoute()
@@ -25,6 +27,7 @@ const failed = ref(false)
 const EMPTY = { id: '', title: '', cover: '', wide: '', header: '', desc: '', studio: '', year: '', price: '', genres: [], cats: [], shots: [], movies: [], ach: [], req: null, tags: [], moods: [], recs: 0, total: 0, discount: 0, free: false, metacritic: null, owned: false, fav: false, steam: false, local: false, hours: null }
 const game = computed(() => current.value ?? EMPTY)
 const similar = computed(() => games.filter((g) => g.id !== game.value.id && g.genres.some((x) => game.value.genres.includes(x))).slice(0, 8))
+const st = computed(() => (desktop.available ? desktop.apps[game.value.id] ?? null : null))
 const buyLabel = computed(() => (game.value.free ? 'Jouer gratuitement' : 'Acheter · ' + (game.value.price || 'sur Steam')))
 const steamUrl = computed(() => `https://store.steampowered.com/app/${game.value.id}`)
 
@@ -135,14 +138,16 @@ onBeforeUnmount(() => ctx?.revert())
           <p data-in class="m-0 text-[15px] text-soft">{{ game.studio }} · {{ game.year }}<span v-if="game.metacritic"> · Metacritic {{ game.metacritic }}</span></p>
           <div data-in class="flex flex-wrap items-center gap-3">
             <Magnet :padding="30" :strength="0.25">
-              <button v-if="game.owned" type="button" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="play(game)">
+              <button v-if="game.owned && (!desktop.available || st?.installed)" type="button" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="play(game)">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6,4 20,12 6,20" /></svg>
                 <ShinyText :speed="4">Jouer</ShinyText>
               </button>
+              <button v-else-if="game.owned && st?.downloading" type="button" disabled class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent/40 px-10 text-[17px] font-extrabold text-ink">Téléchargement…</button>
+              <button v-else-if="game.owned" type="button" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="install(game)"><ShinyText :speed="4">Installer</ShinyText></button>
               <button v-else-if="game.free" type="button" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="install(game)"><ShinyText :speed="4">Installer gratuitement</ShinyText></button>
               <a v-else :href="steamUrl" target="_blank" rel="noopener noreferrer" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink no-underline"><ShinyText :speed="4">{{ buyLabel }}</ShinyText></a>
             </Magnet>
-            <button v-if="game.owned" type="button" class="flex h-[60px] items-center gap-2 rounded-full border border-white/[0.16] bg-ink/50 px-6 text-[15px] font-semibold text-white transition-colors hover:bg-white/10" @click="install(game)">
+            <button v-if="game.owned && !desktop.available" type="button" class="flex h-[60px] items-center gap-2 rounded-full border border-white/[0.16] bg-ink/50 px-6 text-[15px] font-semibold text-white transition-colors hover:bg-white/10" @click="install(game)">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" /></svg>Installer
             </button>
             <span v-if="game.steam && !game.local" class="flex h-[60px] items-center gap-2 rounded-full border border-accent bg-accent/15 px-6 text-[15px] font-semibold text-white">✓ Dans ta bibliothèque Steam</span>
@@ -152,7 +157,12 @@ onBeforeUnmount(() => ctx?.revert())
             <button type="button" :aria-pressed="game.fav" :aria-label="game.fav ? 'Retirer des favoris' : 'Ajouter aux favoris'" class="flex size-[60px] items-center justify-center rounded-full border border-white/[0.16] bg-ink/50 transition-colors hover:bg-white/10" @click="toggleFav(game)">
               <svg width="20" height="20" viewBox="0 0 24 24" :fill="game.fav ? '#FF3D9A' : 'none'" stroke="#FF3D9A" stroke-width="2" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z" /></svg>
             </button>
-            
+          </div>
+          <DownloadBar v-if="st?.downloading" data-in :app="st" />
+          <div v-if="st?.installed" data-in class="flex flex-wrap items-center gap-3 text-sm text-soft">
+            <span class="flex items-center gap-2 font-semibold text-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" aria-hidden="true"><polyline points="20,6 9,17 4,12" /></svg>Installé sur cet ordinateur</span>
+            <button type="button" class="border-0 bg-transparent p-0 text-sm font-semibold text-soft underline hover:text-white" @click="showFolder(game)">Ouvrir le dossier</button>
+            <button type="button" class="border-0 bg-transparent p-0 text-sm font-semibold text-soft underline hover:text-white" @click="uninstall(game)">Désinstaller</button>
           </div>
         </div>
       </section>
@@ -216,7 +226,7 @@ onBeforeUnmount(() => ctx?.revert())
           <dl class="m-0 mt-2 grid max-w-[820px] grid-cols-2 gap-4 sm:grid-cols-4">
             <div class="flex flex-col gap-1"><dt class="text-xs text-mute">Développeur</dt><dd class="m-0 text-sm font-semibold">{{ game.studio || '—' }}</dd></div>
             <div class="flex flex-col gap-1"><dt class="text-xs text-mute">Sortie</dt><dd class="m-0 text-sm font-semibold">{{ game.year || '—' }}</dd></div>
-            <div class="flex flex-col gap-1"><dt class="text-xs text-mute">Taille</dt><dd class="m-0 text-sm font-semibold">{{ game.sizeGo ? game.sizeGo + " Go" : "—" }}</dd></div>
+            <div class="flex flex-col gap-1"><dt class="text-xs text-mute">Taille</dt><dd class="m-0 text-sm font-semibold">{{ st?.sizeOnDisk ? (st.sizeOnDisk / 1024 ** 3).toFixed(1) + " Go (sur ton disque)" : game.sizeGo ? game.sizeGo + " Go" : "—" }}</dd></div>
             <div class="flex flex-col gap-1"><dt class="text-xs text-mute">Prix</dt><dd class="m-0 text-sm font-semibold">{{ game.price || '—' }}</dd></div>
           </dl>
           <Requirements :req="game.req" :key="game.id" class="mt-8 max-w-[820px]" />
