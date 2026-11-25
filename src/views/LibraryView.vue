@@ -104,38 +104,13 @@ function leave(el, done) {
 
       <template v-else>
         <p v-if="steam.status === 'in' && !steam.gamesVisible" class="m-0 rounded-2xl border border-white/10 bg-panel p-4 text-sm text-soft" role="status">Ton profil Steam est connecté, mais tes <strong>détails de jeu sont privés</strong> : mets-les en « Public » dans Steam (Profil → Confidentialité) pour voir tes jeux et tes heures.</p>
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <SpotlightCard data-stat class="card flex flex-col gap-1.5 p-6">
-            <span class="text-[13px] text-mute">Jeux dans ta bibliothèque</span>
-            <span class="font-display text-5xl font-black leading-none"><CountUp :to="count" :duration="1.4" :delay="0.4" /></span>
-            <span class="text-[13px] font-semibold text-accent">{{ favCount }} en favori{{ favCount > 1 ? 's' : '' }}</span>
-          </SpotlightCard>
-          <SpotlightCard v-if="connected" data-stat class="card flex flex-col gap-1.5 p-6">
-            <span class="text-[13px] text-mute">Temps de jeu total</span>
-            <span class="font-display text-5xl font-black leading-none"><CountUp :to="totalHours" :duration="1.8" :delay="0.5" /><span class="text-[22px]"> h</span></span>
-            <span class="text-[13px] text-mute">Heures réelles sur Steam</span>
-          </SpotlightCard>
-          <SpotlightCard v-else data-stat class="card flex flex-col gap-1.5 p-6">
-            <span class="text-[13px] text-mute">Valeur au prix Steam</span>
-            <span class="font-display text-5xl font-black leading-none"><CountUp :to="worth" :duration="1.6" :delay="0.5" /><span class="text-[22px]"> €</span></span>
-            <span class="text-[13px] text-mute">Somme des prix actuels</span>
-          </SpotlightCard>
-          <SpotlightCard v-if="topGenre" data-stat class="card flex flex-col gap-1.5 p-6">
-            <span class="text-[13px] text-mute">Genre le plus présent</span>
-            <span class="font-display text-3xl font-black leading-tight">{{ topGenre[0] }}</span>
-            <span class="text-[13px] text-mute">{{ topGenre[1] }} jeu{{ topGenre[1] > 1 ? 'x' : '' }}</span>
-          </SpotlightCard>
-          <SpotlightCard v-if="connected && mostPlayed" data-stat class="card flex flex-col gap-1.5 p-6">
-            <span class="text-[13px] text-mute">Ton jeu le plus joué</span>
-            <span class="font-display text-xl font-extrabold leading-tight">{{ mostPlayed.title }}</span>
-            <span class="text-[13px] text-mute">{{ fmt.format(mostPlayed.hours) }} h</span>
-          </SpotlightCard>
-          <SpotlightCard v-else data-stat class="card flex flex-col gap-1.5 p-6">
-            <span class="text-[13px] text-mute">Dernier ajout</span>
-            <span class="font-display text-xl font-extrabold leading-tight">{{ all[all.length - 1].title }}</span>
-            <span class="text-[13px] text-mute">{{ all[all.length - 1].price || 'Gratuit' }}</span>
-          </SpotlightCard>
-        </div>
+        <dl data-stat class="m-0 flex flex-wrap items-end gap-x-10 gap-y-4 border-b border-white/10 pb-6">
+          <div class="flex flex-col"><dd class="m-0 font-display text-4xl font-black leading-none"><CountUp :to="count" :duration="1.4" :delay="0.4" /></dd><dt class="mt-1.5 text-[13px] text-mute">jeu{{ count > 1 ? 'x' : '' }} · {{ favCount }} en favori{{ favCount > 1 ? 's' : '' }}</dt></div>
+          <div v-if="connected" class="flex flex-col"><dd class="m-0 font-display text-4xl font-black leading-none"><CountUp :to="totalHours" :duration="1.8" :delay="0.5" /><span class="text-lg"> h</span></dd><dt class="mt-1.5 text-[13px] text-mute">de jeu sur Steam</dt></div>
+          <div v-else class="flex flex-col"><dd class="m-0 font-display text-4xl font-black leading-none"><CountUp :to="worth" :duration="1.6" :delay="0.5" /><span class="text-lg"> €</span></dd><dt class="mt-1.5 text-[13px] text-mute">au prix Steam</dt></div>
+          <div v-if="connected && mostPlayed" class="flex min-w-0 flex-col"><dd class="m-0 truncate font-display text-xl font-extrabold leading-none">{{ mostPlayed.title }}</dd><dt class="mt-1.5 text-[13px] text-mute">le plus joué · {{ fmt.format(mostPlayed.hours) }} h</dt></div>
+          <div v-if="topGenre" class="flex flex-col"><dd class="m-0 font-display text-xl font-extrabold leading-none">{{ topGenre[0] }}</dd><dt class="mt-1.5 text-[13px] text-mute">genre favori</dt></div>
+        </dl>
 
         <div class="flex flex-wrap items-center justify-between gap-4">
           <div class="flex flex-wrap gap-2" role="group" aria-label="Filtrer">
