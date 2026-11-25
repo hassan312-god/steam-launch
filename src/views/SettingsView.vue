@@ -8,7 +8,7 @@ import { accents, byId, libraryAll, walls } from '../data/games'
 import { setAccent, theme } from '../composables/useTheme'
 import Modal from '../components/Modal.vue'
 import { toast } from '../composables/useToast'
-import { desktop, installedCount, notify, setSetting } from '../composables/useDesktop'
+import { checkUpdate, desktop, installUpdate, installedCount, notify, setSetting } from '../composables/useDesktop'
 import { connectSteam, disconnectSteam, displayName, loadSteam, steam } from '../composables/useSteam'
 import { prefersReduced } from '../composables/motion'
 
@@ -107,6 +107,12 @@ onBeforeUnmount(() => ctx?.revert())
           <div v-for="[key, label, hint] in deskToggles" :key="key" class="flex items-center justify-between gap-5 border-t border-white/[0.07] py-4">
             <div class="flex flex-col gap-[3px]"><label :for="'d-' + key" class="text-[15px] font-semibold">{{ label }}</label><span class="text-[13px] text-mute">{{ hint }}</span></div>
             <input :id="'d-' + key" type="checkbox" class="nv-sw" :checked="desktop.settings[key]" @change="setSetting({ [key]: $event.target.checked })" />
+          </div>
+          <div class="flex flex-wrap items-center gap-3 border-t border-white/[0.07] py-4">
+            <div class="flex min-w-0 flex-1 flex-col gap-[3px]"><span class="text-[15px] font-semibold">Version {{ desktop.version || '—' }}</span>
+              <span class="text-[13px] text-mute" aria-live="polite">{{ { idle: 'Les mises à jour sont vérifiées automatiquement.', checking: 'Recherche de mise à jour…', latest: 'Tu as la dernière version.', downloading: `Téléchargement de la version ${desktop.update.version} : ${desktop.update.percent} %`, ready: `La version ${desktop.update.version} est prête à être installée.`, error: 'Mise à jour impossible pour le moment.' }[desktop.update.status] }}</span></div>
+            <button v-if="desktop.update.status === 'ready'" type="button" class="h-11 rounded-full bg-accent px-5 text-sm font-extrabold text-ink" @click="installUpdate">Redémarrer et installer</button>
+            <button v-else type="button" :disabled="['checking', 'downloading'].includes(desktop.update.status)" class="h-11 rounded-full border border-white/20 bg-transparent px-5 text-sm font-semibold text-white enabled:hover:bg-white/10 disabled:opacity-50" @click="checkUpdate">Rechercher une mise à jour</button>
           </div>
           <button type="button" class="mt-2 h-11 self-start rounded-full border border-white/20 bg-transparent px-5 text-sm font-semibold text-white hover:bg-white/10" @click="notify('G.A Launcher', 'Les notifications du bureau fonctionnent.', '/parametres')">Tester une notification</button>
         </div>

@@ -8,7 +8,7 @@ import tailwindcss from '@tailwindcss/vite'
 const steamDev = () => ({
   name: 'steam-dev',
   configureServer(server) {
-    const routes = { login: 'steam-login', callback: 'steam-callback', me: 'steam-me', logout: 'steam-logout', app: 'steam-app', store: 'steam-store', search: 'steam-search' }
+    const routes = { login: 'steam-login', callback: 'steam-callback', me: 'steam-me', logout: 'steam-logout', app: 'steam-app', store: 'steam-store', search: 'steam-search', catalog: 'steam-catalog' }
     server.middlewares.use('/api/steam', async (req, res) => {
       const name = routes[req.url.split('?')[0].replace(/^\//, '')]
       if (!name) return ((res.statusCode = 404), res.end())

@@ -8,7 +8,7 @@ export default async (req) => {
   if (!/^\d{1,9}$/.test(id)) return Response.json({ error: 'id invalide' }, { status: 400 })
   try {
     const d = await fetchApp(id)
-    if (!d || d.type !== 'game') return Response.json({ error: 'introuvable' }, { status: 404 })
+    if (!d || ['hardware', 'series', 'advertising'].includes(d.type)) return Response.json({ error: 'introuvable' }, { status: 404 })
     const body = full ? await normalizeFull(d, id) : await normalizeApp(d, id)
     return Response.json(body, { headers: { 'cache-control': 'public, max-age=1800' } })
   } catch (e) {

@@ -11,9 +11,7 @@ import Ring from '../components/bits/Ring.vue'
 import SpotlightCard from '../components/bits/SpotlightCard.vue'
 import TiltedCard from '../components/bits/TiltedCard.vue'
 import TrailerVideo from '../components/TrailerVideo.vue'
-import Requirements from '../components/Requirements.vue'
-import GameMain from '../components/GameMain.vue'
-import GameSide from '../components/GameSide.vue'
+import GameTabs from '../components/GameTabs.vue'
 import { extras, loadExtra } from '../composables/useGameExtra'
 import { fmt, games, getGame } from '../data/games'
 import { theme } from '../composables/useTheme'
@@ -27,8 +25,9 @@ const reduced = prefersReduced()
 // Le jeu vient du catalogue, sinon il est chargé à la volée depuis Steam (/api/steam/app).
 const current = shallowRef(null)
 const failed = ref(false)
-const EMPTY = { id: '', title: '', cover: '', wide: '', header: '', desc: '', studio: '', year: '', price: '', genres: [], cats: [], shots: [], movies: [], ach: [], req: null, tags: [], moods: [], recs: 0, total: 0, discount: 0, free: false, metacritic: null, owned: false, fav: false, steam: false, local: false, hours: null }
+const EMPTY = { id: '', kind: 'game', parent: null, title: '', cover: '', wide: '', header: '', desc: '', studio: '', year: '', price: '', genres: [], cats: [], shots: [], movies: [], ach: [], req: null, tags: [], moods: [], recs: 0, total: 0, discount: 0, free: false, metacritic: null, owned: false, fav: false, steam: false, local: false, hours: null }
 const game = computed(() => current.value ?? EMPTY)
+const isGame = computed(() => (game.value.kind || 'game') === 'game')
 const extra = computed(() => extras[game.value.id] || null)
 const extraFailed = computed(() => extras[game.value.id] === false)
 const similar = computed(() => games.filter((g) => g.id !== game.value.id && g.genres.some((x) => game.value.genres.includes(x))).slice(0, 8))
@@ -138,12 +137,14 @@ onBeforeUnmount(() => ctx?.revert())
         </TiltedCard>
         <div class="flex min-w-0 flex-1 basis-[420px] flex-col gap-5">
           <div data-in class="flex flex-wrap items-center gap-2">
-            <span class="eyebrow">{{ game.genres.slice(0, 3).join(' · ') }}</span>
+            <RouterLink v-if="game.parent" :to="'/jeu/' + game.parent.id" class="eyebrow no-underline hover:underline">Contenu additionnel · {{ game.parent.name }}</RouterLink>
+            <span v-else class="eyebrow">{{ game.genres.slice(0, 3).join(' · ') }}</span>
             <span class="rounded-full bg-white/[0.14] px-3 py-1.5 text-xs font-bold tracking-[0.14em] backdrop-blur-md">{{ game.owned ? 'DANS MA BIBLIOTHÈQUE' : game.price || 'GRATUIT' }}</span>
           </div>
           <h1 class="m-0 font-display text-[clamp(32px,5.6vw,92px)] font-black uppercase leading-[0.95] tracking-[-0.03em]"><SplitText :key="game.id" :text="game.title" :stagger="0.02" /></h1>
           <p data-in class="m-0 text-[15px] text-soft">{{ game.studio }} · {{ game.year }}<span v-if="game.metacritic"> · Metacritic {{ game.metacritic }}</span></p>
           <div data-in class="flex flex-wrap items-center gap-3">
+            <template v-if="isGame">
             <Magnet :padding="30" :strength="0.25">
               <button v-if="game.owned && (!desktop.available || st?.installed)" type="button" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="play(game)">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6,4 20,12 6,20" /></svg>
@@ -161,6 +162,9 @@ onBeforeUnmount(() => ctx?.revert())
             <button v-else type="button" :aria-pressed="game.owned" class="flex h-[60px] items-center gap-2 rounded-full border px-6 text-[15px] font-semibold text-white transition-colors" :class="game.owned ? 'border-accent bg-accent/15' : 'border-white/[0.16] bg-ink/50 hover:bg-white/10'" @click="toggleLibrary(game)">
               {{ game.owned ? '✓ Dans ma bibliothèque' : '+ Ajouter à ma bibliothèque' }}
             </button>
+            </template>
+            <!-- Contenu additionnel : le paiement se fait chez Steam (seule étape hors du launcher) -->
+            <a v-else :href="steamUrl" target="_blank" rel="noopener noreferrer" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink no-underline">{{ game.price && game.price !== 'Gratuit' ? 'Acheter sur Steam · ' + game.price : 'Obtenir sur Steam' }}<span aria-hidden="true">↗</span></a>
             <button type="button" :aria-pressed="game.fav" :aria-label="game.fav ? 'Retirer des favoris' : 'Ajouter aux favoris'" class="flex size-[60px] items-center justify-center rounded-full border border-white/[0.16] bg-ink/50 transition-colors hover:bg-white/10" @click="toggleFav(game)">
               <svg width="20" height="20" viewBox="0 0 24 24" :fill="game.fav ? '#FF3D9A' : 'none'" stroke="#FF3D9A" stroke-width="2" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z" /></svg>
             </button>
@@ -199,64 +203,7 @@ onBeforeUnmount(() => ctx?.revert())
         </button>
       </div>
 
-      <!-- Chiffres réels (Steam) -->
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <SpotlightCard data-stat class="card flex flex-col gap-1.5 p-6">
-          <span class="text-[13px] text-mute">Prix</span>
-          <span class="font-display text-4xl font-black leading-none">{{ game.price || 'Gratuit' }}</span>
-          <span class="text-[13px]" :class="game.discount ? 'font-semibold text-hot' : 'text-mute'">{{ game.hours != null ? `Tu y as joué ${fmt.format(game.hours)} h` : game.discount ? `-${game.discount} % en ce moment` : 'Prix du magasin Steam' }}</span>
-        </SpotlightCard>
-        <div data-stat class="card flex items-center gap-[18px] p-6">
-          <Ring v-if="game.metacritic" :key="game.id" :value="game.metacritic" :size="92" :thickness="9" track="rgba(255,255,255,0.12)" inner="var(--color-panel)" :delay="0.9"><span class="font-display text-xl font-extrabold"><CountUp :to="game.metacritic" :duration="1.4" :delay="0.9" /></span></Ring>
-          <span v-else class="font-display text-4xl font-black text-mute">—</span>
-          <div class="flex min-w-0 flex-col gap-1"><span class="text-[13px] text-mute">Metacritic</span><span class="text-sm font-semibold leading-tight">{{ game.metacritic ? 'Note de la presse' : 'Pas de note' }}</span></div>
-        </div>
-        <div data-stat class="card flex flex-col gap-1.5 p-6">
-          <span class="text-[13px] text-mute">Avis Steam</span>
-          <span class="font-display text-4xl font-black leading-none"><CountUp :key="game.id" :to="game.recs" :duration="1.6" :delay="0.9" /></span>
-          <span class="text-[13px] text-mute">joueurs recommandent ce jeu</span>
-        </div>
-        <div data-stat class="card flex flex-col gap-1.5 p-6">
-          <span class="text-[13px] text-mute">Succès Steam</span>
-          <span class="font-display text-4xl font-black leading-none">{{ game.total || '—' }}</span>
-          <span class="text-[13px] text-mute">{{ game.total ? 'à débloquer' : 'Aucun succès' }}</span>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <section v-reveal class="flex flex-col gap-4 lg:col-span-2" aria-labelledby="about-h">
-          <!-- Version courte, tant que la fiche complète de Steam n'est pas arrivée (ou indisponible) -->
-          <template v-if="!extra">
-          <h2 id="about-h" class="m-0 font-display text-[22px] font-extrabold tracking-[-0.01em]">À propos</h2>
-          <BlurText :key="game.id" tag="p" :text="game.desc" :delay="0.2" :stagger="0.02" class="m-0 max-w-[820px] text-base leading-relaxed text-soft" />
-          <div class="flex flex-wrap gap-2">
-            <span v-for="t in game.tags" :key="t" class="rounded-full border border-white/[0.14] bg-panel/80 px-4 py-2 text-sm font-semibold">{{ t }}</span>
-          </div>
-          <dl class="m-0 mt-2 grid max-w-[820px] grid-cols-2 gap-4 sm:grid-cols-4">
-            <div class="flex flex-col gap-1"><dt class="text-xs text-mute">Développeur</dt><dd class="m-0 text-sm font-semibold">{{ game.studio || '—' }}</dd></div>
-            <div class="flex flex-col gap-1"><dt class="text-xs text-mute">Sortie</dt><dd class="m-0 text-sm font-semibold">{{ game.year || '—' }}</dd></div>
-            <div class="flex flex-col gap-1"><dt class="text-xs text-mute">Taille</dt><dd class="m-0 text-sm font-semibold">{{ st?.sizeOnDisk ? (st.sizeOnDisk / 1024 ** 3).toFixed(1) + " Go (sur ton disque)" : game.sizeGo ? game.sizeGo + " Go" : "—" }}</dd></div>
-            <div class="flex flex-col gap-1"><dt class="text-xs text-mute">Prix</dt><dd class="m-0 text-sm font-semibold">{{ game.price || '—' }}</dd></div>
-          </dl>
-          </template>
-          <GameMain :game="game" :extra="extra" :failed="extraFailed" class="mt-10" />
-          <Requirements :req="game.req" :key="game.id" class="mt-10 max-w-[820px]" />
-        </section>
-
-        <div class="flex flex-col gap-8">
-        <GameSide :game="game" :extra="extra" :size="sizeLabel" />
-        <section v-if="game.ach.length" class="flex flex-col gap-4" aria-labelledby="ach-h">
-          <h2 id="ach-h" class="m-0 font-display text-[22px] font-extrabold tracking-[-0.01em]">Succès à débloquer</h2>
-          <ul class="m-0 flex list-none flex-col gap-2.5 p-0">
-            <li v-for="a in game.ach" :key="a.name" data-ach class="card flex items-center gap-3.5 p-3.5">
-              <img :src="a.icon" alt="" loading="lazy" class="size-12 shrink-0 rounded-xl object-cover" />
-              <strong class="truncate text-sm">{{ a.name }}</strong>
-            </li>
-          </ul>
-          <span class="text-xs text-mute">{{ game.total }} succès au total sur Steam</span>
-        </section>
-        </div>
-      </div>
+      <GameTabs :game="game" :extra="extra" :failed="extraFailed" :is-game="isGame" :size="sizeLabel" />
 
       <section v-if="similar.length" class="flex flex-col gap-4" aria-labelledby="sim-h">
         <h2 id="sim-h" class="m-0 font-display text-[22px] font-extrabold tracking-[-0.01em]">Tu aimeras aussi</h2>

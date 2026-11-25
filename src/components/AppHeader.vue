@@ -14,6 +14,7 @@ const route = useRoute()
 const links = [
   { to: '/accueil', label: 'Accueil' },
   { to: '/magasin', label: 'Magasin' },
+  { to: '/catalogue', label: 'Catalogue' },
   { to: '/bibliotheque', label: 'Bibliothèque' },
   { to: '/parametres', label: 'Paramètres' },
 ]

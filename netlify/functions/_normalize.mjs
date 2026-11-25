@@ -43,6 +43,8 @@ export async function normalizeApp(d, id = d.steam_appid) {
   const shots = (d.screenshots || []).slice(0, 10).map((s) => s.path_full.split('?')[0])
   return {
     id,
+    kind: d.type || 'game', // game | dlc | music | demo …
+    parent: d.fullgame?.appid ? { id: String(d.fullgame.appid), name: d.fullgame.name } : null,
     title: d.name,
     cover: hasCover ? cover : header,
     wide: hasHero ? hero : shots[0] || header,
@@ -120,11 +122,17 @@ async function getJson(url) {
   return r.json()
 }
 
+// Texte d'annonce : BBCode / balises retirés ; `paragraphs` garde les sauts de ligne pour la lecture dans le launcher.
+function newsText(raw = '', paragraphs = false) {
+  const t = raw.replace(/\[\/?(p|\*|list|h\d|b|i|u|url|img|previewyoutube|quote|code)[^\]]*\]/gi, paragraphs ? '\n' : ' ').replace(/\[[^\]]*\]/g, ' ').replace(/\{[A-Z_]+\}\S*/g, ' ').replace(/<[^>]+>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').replace(/[\\*#]+/g, ' ')
+  return paragraphs ? t.split('\n').map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean).join('\n\n') : t.replace(/\s+/g, ' ').trim()
+}
+
 export async function normalizeFull(d, id) {
   id = String(id)
   const [dlc, news, hist] = await Promise.all([
     Promise.allSettled((d.dlc || []).slice(0, 8).map((x) => fetchApp(x))),
-    getJson(`https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=${id}&count=4&maxlength=280&format=json`).catch(() => null),
+    getJson(`https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=${id}&count=4&maxlength=4000&format=json`).catch(() => null),
     getJson(`https://store.steampowered.com/appreviewhistogram/${id}?l=french`).catch(() => null),
   ])
 
@@ -171,7 +179,8 @@ export async function normalizeFull(d, id) {
       date: n.date * 1000,
       label: n.feedlabel,
       url: /^https?:\/\//.test(n.url || '') ? n.url : '',
-      text: strip((n.contents || '').replace(/\[[^\]]*\]/g, ' ').replace(/\{[A-Z_]+\}\S*/g, ' ').replace(/[\\*#]+/g, ' ')).slice(0, 240),
+      text: newsText(n.contents).slice(0, 240),
+      body: newsText(n.contents, true).slice(0, 3500),
     })),
     reviews,
   }

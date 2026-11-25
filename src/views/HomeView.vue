@@ -23,14 +23,23 @@ const fallback = () => [
   { id: 'new_releases', title: 'Nouveautés', sub: 'Les dernières sorties', items: catNew.map(toItem) },
 ].filter((x) => x.items.length)
 const sections = ref([])
+const opened = ref(new Set())
+const toggle = (id) => { const n = new Set(opened.value); n.has(id) ? n.delete(id) : n.add(id); opened.value = n }
 const live = ref(false)
-fetch('/api/steam/store')
-  .then((r) => (r.ok ? r.json() : Promise.reject()))
-  .then((d) => {
-    sections.value = d.sections
-    live.value = true
-  })
-  .catch(() => (sections.value = fallback()))
+const updatedAt = ref(0)
+const now = ref(Date.now())
+// Les vitrines Steam changent en continu : on recharge toutes les 5 minutes et au retour sur l'onglet.
+function refresh() {
+  return fetch('/api/steam/store')
+    .then((r) => (r.ok ? r.json() : Promise.reject()))
+    .then((d) => {
+      sections.value = d.sections
+      live.value = true
+      updatedAt.value = Date.now()
+    })
+    .catch(() => { if (!sections.value.length) sections.value = fallback() })
+}
+refresh()
 if (!sections.value.length) sections.value = fallback()
 
 const TAGS = { top_sellers: 'MEILLEURE VENTE', specials: 'EN PROMOTION', new_releases: 'NOUVEAUTÉ', coming_soon: 'PROCHAINEMENT' }
@@ -50,6 +59,7 @@ const items = computed(() => {
 
 const mood = ref('tout')
 const sel = ref(0)
+const ago = computed(() => { const m = Math.floor((now.value - updatedAt.value) / 60000); return !updatedAt.value ? '' : m < 1 ? 'à l’instant' : `il y a ${m} min` })
 // Les humeurs s'appliquent aux jeux dont on connaît les genres (catalogue) ; « Tout » montre toute la vitrine.
 const list = computed(() => items.value.filter((i) => mood.value === 'tout' || lookup(i.id)?.moods.includes(mood.value)))
 const current = computed(() => list.value[Math.min(sel.value, list.value.length - 1)] ?? items.value[0])
@@ -73,6 +83,35 @@ const videoOn = ref(false)
 let vt
 const onPlaying = () => { clearTimeout(vt); vt = setTimeout(() => (videoOn.value = true), 600) }
 watch(() => hero.value.id, () => { clearTimeout(vt); videoOn.value = false })
+
+
+// Défilement automatique : une barre de progression se remplit, puis le jeu suivant passe ; pause au survol, hors onglet ou via le bouton.
+const AUTO_MS = 9000
+const auto = ref(true)
+const hovered = ref(false)
+const bar = ref(null)
+const strip = ref(null)
+let prog
+const next = (d = 1) => { const n = list.value.length; if (n) sel.value = (sel.value + d + n) % n }
+function runProgress() {
+  prog?.kill()
+  if (!bar.value) return
+  gsap.set(bar.value, { scaleX: 0 })
+  if (prefersReduced()) return
+  prog = gsap.to(bar.value, { scaleX: 1, duration: AUTO_MS / 1000, ease: 'none', onComplete: () => next(1) })
+  syncProgress()
+}
+const syncProgress = () => prog && (auto.value && !hovered.value && !document.hidden ? prog.play() : prog.pause())
+watch([sel, list], () => {
+  runProgress()
+  nextTick(() => {
+    const el = strip.value?.querySelector('[aria-selected="true"]')
+    if (el && strip.value) strip.value.scrollTo({ left: el.offsetLeft - strip.value.clientWidth / 2 + el.offsetWidth / 2, behavior: prefersReduced() ? 'auto' : 'smooth' })
+  })
+}, { flush: 'post' })
+watch([auto, hovered], syncProgress)
+let tick, poll
+const onVis = () => { syncProgress(); if (!document.hidden && Date.now() - updatedAt.value > 120000) refresh() }
 
 function pickMood(k) {
   mood.value = k
@@ -108,6 +147,10 @@ const root = ref(null)
 onMounted(() => {
   window.addEventListener('keydown', onKey)
   window.addEventListener('resize', onResize)
+  document.addEventListener('visibilitychange', onVis)
+  tick = setInterval(() => (now.value = Date.now()), 30000)
+  poll = setInterval(refresh, 300000)
+  runProgress()
   if (prefersReduced()) return
   ctx = gsap.context(() => {
     const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
@@ -121,6 +164,9 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)
   window.removeEventListener('resize', onResize)
+  document.removeEventListener('visibilitychange', onVis)
+  clearInterval(tick); clearInterval(poll)
+  prog?.kill()
   ctx?.revert()
 })
 watch(hero, async () => {
@@ -132,7 +178,7 @@ watch(hero, async () => {
 
 <template>
   <div class="bg-ink">
-  <section ref="root" class="relative flex min-h-screen min-w-0 flex-col overflow-hidden bg-ink pt-[var(--header-h,100px)]">
+  <section ref="root" class="relative flex min-h-screen min-w-0 flex-col overflow-hidden bg-ink pt-[var(--header-h,100px)]" @pointerenter="hovered = true" @pointerleave="hovered = false" @focusin="hovered = true" @focusout="hovered = false">
     <!-- Fond héros -->
     <div aria-hidden="true" class="absolute inset-0 overflow-hidden">
       <Transition :css="false" appear @enter="heroEnter" @leave="heroLeave">
@@ -194,7 +240,8 @@ watch(hero, async () => {
             <span v-else-if="hero.recs" data-chip class="rounded-[14px] border border-white/[0.12] bg-ink/50 px-3.5 py-2.5"><strong>{{ fmt.format(hero.recs) }}</strong><span class="text-soft"> avis Steam</span></span>
           </div>
         </div>
-        <div class="flex gap-3">
+        <div class="flex items-center gap-3">
+          <button type="button" class="flex size-[60px] items-center justify-center rounded-full border border-white/[0.16] bg-ink/50 text-white backdrop-blur-md transition-colors hover:bg-white/10" aria-label="Jeu précédent" @click="next(-1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg></button>
           <Magnet :padding="30" :strength="0.25">
             <span class="relative inline-flex">
               <span data-play-glow aria-hidden="true" class="absolute inset-0 rounded-full bg-accent opacity-25 blur-xl" />
@@ -209,10 +256,19 @@ watch(hero, async () => {
             </span>
           </Magnet>
           <RouterLink :to="'/jeu/' + hero.id" aria-label="Voir la fiche du jeu" class="flex size-[60px] items-center justify-center rounded-full border border-white/[0.16] bg-ink/50 text-xl font-extrabold text-white no-underline transition-colors hover:bg-white/10">···</RouterLink>
+          <button type="button" class="flex size-[60px] items-center justify-center rounded-full border border-white/[0.16] bg-ink/50 text-white backdrop-blur-md transition-colors hover:bg-white/10" aria-label="Jeu suivant" @click="next(1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg></button>
         </div>
       </div>
 
-      <div class="no-scrollbar flex items-end gap-4 overflow-x-auto shell pb-1.5 pt-3.5" role="listbox" aria-label="Jeux" aria-orientation="horizontal">
+      <div class="shell flex items-center gap-4">
+        <button type="button" class="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/20 bg-ink/50 text-white backdrop-blur-md hover:bg-white/10" :aria-label="auto ? 'Mettre le défilement en pause' : 'Reprendre le défilement'" :aria-pressed="!auto" @click="auto = !auto">
+          <svg v-if="auto" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" /></svg>
+          <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+        </button>
+        <div class="h-1 flex-1 overflow-hidden rounded-full bg-white/[0.14]" role="presentation"><div ref="bar" class="h-full origin-left rounded-full bg-accent" style="transform: scaleX(0)" /></div>
+        <span class="shrink-0 text-xs font-semibold tabular-nums text-soft">{{ Math.min(sel + 1, list.length) }} / {{ list.length }}</span>
+      </div>
+      <div ref="strip" class="no-scrollbar relative flex items-end gap-4 overflow-x-auto shell pb-1.5 pt-3.5" role="listbox" aria-label="Jeux" aria-orientation="horizontal">
         <TransitionGroup :css="false" appear @enter="coverEnter" @leave="coverLeave">
           <button
             v-for="(g, i) in list"
@@ -235,7 +291,7 @@ watch(hero, async () => {
           Tout voir
         </RouterLink>
       </div>
-      <p class="shell text-xs text-mute">Astuce : utilise les flèches ← → pour parcourir les jeux.</p>
+      <p class="shell text-xs text-mute">Astuce : flèches ← → pour parcourir · le défilement se met en pause au survol.</p>
     </section>
   </section>
 
@@ -244,11 +300,12 @@ watch(hero, async () => {
     <div class="flex items-center gap-3">
       <h2 class="m-0 font-display text-[clamp(22px,2.6vw,30px)] font-black">Proposé par Steam</h2>
       <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-bold tracking-[0.1em]" :class="live ? 'text-accent' : 'text-mute'">{{ live ? 'EN DIRECT' : 'HORS LIGNE' }}</span>
+      <span v-if="ago" class="text-xs text-mute" role="status">Mis à jour {{ ago }}</span>
     </div>
     <section v-for="s in sections" :key="s.id" v-reveal class="flex flex-col gap-4" :aria-labelledby="'h-' + s.id">
-      <div class="flex items-baseline justify-between gap-4"><h3 :id="'h-' + s.id" class="m-0 font-display text-[22px] font-extrabold tracking-[-0.01em]">{{ s.title }}</h3><span class="text-sm text-mute">{{ s.sub }}</span></div>
-      <div class="no-scrollbar flex gap-[18px] overflow-x-auto px-1 py-3">
-        <RouterLink v-for="i in s.items" :key="i.id" :to="'/jeu/' + i.id" class="group flex w-[180px] shrink-0 flex-col gap-3 text-white no-underline 2xl:w-[220px]">
+      <div class="flex items-baseline justify-between gap-4"><h3 :id="'h-' + s.id" class="m-0 font-display text-[22px] font-extrabold tracking-[-0.01em]">{{ s.title }}</h3><span class="flex items-center gap-4"><span class="hidden text-sm text-mute sm:inline">{{ s.sub }}</span><button type="button" :aria-expanded="opened.has(s.id)" class="h-9 rounded-full border border-white/[0.18] bg-transparent px-4 text-[13px] font-bold text-white hover:bg-white/10" @click="toggle(s.id)">{{ opened.has(s.id) ? 'Réduire' : 'Voir plus' }}</button></span></div>
+      <div :class="opened.has(s.id) ? 'grid grid-cols-2 gap-5 px-1 py-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6' : 'no-scrollbar flex gap-[18px] overflow-x-auto px-1 py-3'">
+        <RouterLink v-for="i in s.items" :key="i.id" :to="'/jeu/' + i.id" class="group flex shrink-0 flex-col gap-3 text-white no-underline" :class="opened.has(s.id) ? '' : 'w-[180px] 2xl:w-[220px]'">
           <div class="relative aspect-[2/3] overflow-hidden rounded-[22px] bg-panel shadow-[0_18px_40px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:-translate-y-1.5">
             <img :src="i.cover" alt="" loading="lazy" class="block size-full object-cover transition-transform duration-700 group-hover:scale-110" @error="$event.target.src = i.header" />
             <span v-if="i.discount" class="absolute left-2.5 top-2.5 rounded-full bg-hot px-[9px] py-[5px] text-[11px] font-extrabold text-ink">-{{ i.discount }} %</span>
