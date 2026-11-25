@@ -7,7 +7,8 @@ import ShinyText from '../components/bits/ShinyText.vue'
 import { desktop } from '../composables/useDesktop'
 import { prefersReduced } from '../composables/motion'
 
-// L'installateur est hébergé sur ce site (/downloads). Sa fiche (version, taille, empreinte) est dans latest.json.
+// L'installateur est publié par GitHub Actions dans la Release publique « desktop-latest » du dépôt.
+const REPO = 'hassan312-god/steam-launch'
 const info = ref(null)
 const loaded = ref(false)
 const isWindows = /Windows/i.test(navigator.userAgent)
@@ -23,9 +24,13 @@ const features = [
 
 onMounted(async () => {
   try {
-    const r = await fetch('/downloads/latest.json', { cache: 'no-cache' })
-    if (r.ok && (r.headers.get('content-type') || '').includes('json')) info.value = await r.json()
-  } catch { /* pas encore publié */ }
+    const r = await fetch(`https://api.github.com/repos/${REPO}/releases/tags/desktop-latest`)
+    if (r.ok) {
+      const rel = await r.json()
+      const exe = rel.assets?.find((x) => x.name === 'GA-Launcher-Setup.exe')
+      if (exe) info.value = { url: exe.browser_download_url, size: exe.size, date: exe.updated_at, version: rel.tag_name === 'desktop-latest' ? 'actuelle' : rel.tag_name, sha256: (exe.digest || '').replace('sha256:', '') }
+    }
+  } catch { /* pas encore publié ou hors ligne */ }
   loaded.value = true
   if (!prefersReduced()) gsap.from('[data-in]', { opacity: 0, y: 28, stagger: 0.1, duration: 0.8, ease: 'power3.out', delay: 0.15 })
 })
@@ -43,7 +48,7 @@ onMounted(async () => {
         <div v-if="desktop.available" data-in class="card p-6 text-soft">Tu utilises déjà l’application de bureau.</div>
         <div v-else-if="info" data-in class="flex flex-wrap items-center gap-5">
           <Magnet :padding="30" :strength="0.25">
-            <a :href="info.url" download class="flex h-[64px] items-center gap-3 rounded-full bg-accent px-9 text-[18px] font-extrabold text-ink no-underline">
+            <a :href="info.url" class="flex h-[64px] items-center gap-3 rounded-full bg-accent px-9 text-[18px] font-extrabold text-ink no-underline">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" /></svg>
               <ShinyText :speed="4">Télécharger pour Windows (.exe)</ShinyText>
             </a>
