@@ -2,9 +2,8 @@
 import { nextTick, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import gsap from 'gsap'
-import { desktop } from '../composables/useDesktop'
+import { desktop, fmtSpeed } from '../composables/useDesktop'
 import { prefersReduced } from '../composables/motion'
-import { install } from '../composables/useLaunch'
 const base = (id) => `https://cdn.cloudflare.steamstatic.com/steam/apps/${id}/`
 const art = (id) => base(id) + 'library_600x900.jpg'
 // Jaquette absente (jeu récent) : on essaie l'en-tête du jeu, sinon la lettre du jeu reste affichée.
@@ -13,7 +12,6 @@ function onErr(e, id) {
   if (!img.dataset.tried) { img.dataset.tried = '1'; img.src = base(id) + 'header.jpg' }
   else img.remove()
 }
-const pause = () => window.launcher?.openDownloads?.()
 
 const props = defineProps({ open: Boolean, list: { type: Array, required: true } })
 const emit = defineEmits(['close'])
@@ -40,14 +38,11 @@ watch(() => props.open, async (o) => {
         </RouterLink>
         <div class="flex min-w-0 flex-1 flex-col gap-1.5">
           <RouterLink :to="'/jeu/' + a.appid" class="truncate text-[15px] font-bold leading-tight text-white no-underline" @click="emit('close')">{{ a.name }}</RouterLink>
-          <span class="text-xs text-mute">{{ a.paused ? 'En pause' : 'Téléchargement en cours' }} · <span class="font-bold tabular-nums" :class="a.paused ? 'text-amber' : 'text-accent'">{{ Math.round(a.progress * 100) }} %</span></span>
+          <span class="text-xs text-mute">{{ a.paused ? 'En pause dans Steam' : a.speed > 0 ? fmtSpeed(a.speed) : 'Démarrage…' }} · <span class="font-bold tabular-nums" :class="a.paused ? 'text-amber' : 'text-accent'">{{ Math.round(a.progress * 100) }} %</span></span>
           <span class="h-1.5 overflow-hidden rounded-full bg-white/[0.14]" role="progressbar" :aria-valuenow="Math.round(a.progress * 100)" aria-valuemin="0" aria-valuemax="100"><span class="block h-full rounded-full transition-[width] duration-700" :class="a.paused ? 'bg-amber' : 'bg-accent'" :style="{ width: Math.round(a.progress * 100) + '%' }" /></span>
         </div>
-        <button type="button" class="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-transparent text-white transition-colors hover:bg-white/10" :aria-label="(a.paused ? 'Reprendre ' : 'Mettre en pause ') + a.name" :title="a.paused ? 'Reprendre' : 'Mettre en pause (ouvre la file de téléchargement de Steam)'" @click="a.paused ? install({ id: a.appid, title: a.name }) : pause()">
-          <svg v-if="a.paused" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
-          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" /></svg>
-        </button>
       </li>
     </ul>
+    <RouterLink to="/telechargements" class="block border-t border-white/[0.07] px-5 py-3.5 text-center text-sm font-bold text-accent no-underline hover:bg-white/5" @click="emit('close')">Voir tous les téléchargements</RouterLink>
   </div>
 </template>
