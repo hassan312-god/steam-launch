@@ -101,6 +101,9 @@ watch(() => route.path, () => {
       <button type="button" aria-label="Rechercher (Ctrl+K)" aria-haspopup="dialog" class="glass-btn flex size-11 items-center justify-center rounded-full text-white transition-transform hover:scale-110" @click="searchOpen = true">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.5" y2="16.5" /></svg>
       </button>
+      <RouterLink v-if="!desktop.available" to="/telecharger" aria-label="Télécharger l’application" class="glass-btn hidden h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold text-white no-underline transition-transform hover:scale-105 sm:flex">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" /></svg>Application
+      </RouterLink>
       <div v-if="desktop.available" ref="dlBox" class="relative">
         <button type="button" aria-label="Téléchargements" aria-haspopup="dialog" :aria-expanded="dlOpen" class="glass-btn relative flex size-11 items-center justify-center rounded-full text-white transition-transform hover:scale-110" @click="dlOpen = !dlOpen">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" /></svg>

@@ -31,7 +31,7 @@
   "build": {
     "appId": "com.ga.launcher",
     "productName": "G.A Launcher",
-    "artifactName": "GA-Launcher-${version}-${os}.${ext}",
+    "artifactName": "GA-Launcher-Setup.${ext}",
     "directories": {
       "output": "release",
       "buildResources": "desktop"
@@ -42,7 +42,12 @@
     ],
     "win": {
       "target": [
-        "nsis"
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "desktop/icon.png"
     },
@@ -55,14 +60,16 @@
         "dmg"
       ],
       "category": "public.app-category.games",
-      "icon": "desktop/icon.png"
+      "icon": "desktop/icon.png",
+      "artifactName": "GA-Launcher-mac.${ext}"
     },
     "linux": {
       "target": [
         "AppImage"
       ],
       "category": "Game",
-      "icon": "desktop/icon.png"
+      "icon": "desktop/icon.png",
+      "artifactName": "GA-Launcher-linux.${ext}"
     }
   }
 }

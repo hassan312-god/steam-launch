@@ -9,6 +9,14 @@ contextBridge.exposeInMainWorld('launcher', {
   play: (id) => ipcRenderer.invoke('steam:play', String(id)),
   uninstall: (id) => ipcRenderer.invoke('steam:uninstall', String(id)),
   showFolder: (id) => ipcRenderer.invoke('steam:folder', String(id)),
+  notify: (title, body, route) => ipcRenderer.invoke('notify', { title, body, route }),
+  getSettings: () => ipcRenderer.invoke('settings:get'),
+  setSettings: (patch) => ipcRenderer.invoke('settings:set', patch),
+  onNavigate: (cb) => {
+    const fn = (_e, route) => cb(route)
+    ipcRenderer.on('navigate', fn)
+    return () => ipcRenderer.removeListener('navigate', fn)
+  },
   onState: (cb) => {
     const fn = (_e, state) => cb(state)
     ipcRenderer.on('steam:state', fn)
