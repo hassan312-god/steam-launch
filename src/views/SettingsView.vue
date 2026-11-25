@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import gsap from 'gsap'
 import SplitText from '../components/bits/SplitText.vue'
 import CountUp from '../components/bits/CountUp.vue'
@@ -7,6 +8,7 @@ import { accents, byId, libraryAll, walls } from '../data/games'
 import { setAccent, theme } from '../composables/useTheme'
 import Modal from '../components/Modal.vue'
 import { toast } from '../composables/useToast'
+import { desktop, installedCount, notify, setSetting } from '../composables/useDesktop'
 import { connectSteam, disconnectSteam, displayName, loadSteam, steam } from '../composables/useSteam'
 import { prefersReduced } from '../composables/motion'
 
@@ -25,6 +27,11 @@ const wall = computed(() => byId[theme.wall].wide)
 const toggles = [
   ['bgVideo', 'Vidéos en arrière-plan', 'Joue la bande-annonce du jeu en fond de l’accueil et des fiches'],
   ['trailerSound', 'Son des bandes-annonces', 'Active le son par défaut quand une vidéo se lance'],
+]
+const deskToggles = [
+  ['notifications', 'Notifications Windows', 'Téléchargement terminé, promotions sur tes jeux favoris'],
+  ['closeToTray', 'Réduire dans la zone de notification', 'Fermer la fenêtre garde le launcher actif en arrière-plan, comme Steam'],
+  ['openAtLogin', 'Lancer au démarrage de l’ordinateur', 'Le launcher démarre réduit avec la session'],
 ]
 const favCount = computed(() => libraryAll.value.filter((g) => g.fav).length)
 
@@ -85,6 +92,23 @@ onBeforeUnmount(() => ctx?.revert())
             <button type="button" class="h-11 rounded-full border border-white/20 bg-transparent px-5 text-sm font-semibold text-white hover:bg-white/10" @click="disconnectSteam">Se déconnecter</button>
           </template>
           <a v-else-if="steam.status === 'out'" href="/api/steam/login" @click.prevent="connectSteam" class="flex h-11 items-center rounded-full bg-accent px-6 text-sm font-extrabold text-ink no-underline">Se connecter avec Steam</a>
+        </div>
+      </section>
+
+      <section data-panel class="card flex flex-wrap items-center justify-between gap-5 p-7" aria-labelledby="app-h">
+        <div class="flex min-w-0 flex-col gap-1">
+          <h2 id="app-h" class="m-0 font-display text-[22px] font-black">Application de bureau</h2>
+          <p v-if="desktop.available && desktop.steamFound" class="m-0 text-sm text-soft"><strong class="text-accent">Steam détecté</strong> sur cet ordinateur · {{ desktop.libraries }} bibliothèque{{ desktop.libraries > 1 ? 's' : '' }} · {{ installedCount() }} jeu{{ installedCount() > 1 ? 'x' : '' }} installé{{ installedCount() > 1 ? 's' : '' }}</p>
+          <p v-else-if="desktop.available" class="m-0 text-sm text-soft">Steam est introuvable sur cet ordinateur : installe le client Steam et connecte-toi dedans pour installer et lancer tes jeux d’ici.</p>
+          <p v-else class="m-0 max-w-[620px] text-sm text-soft">Pour installer, suivre les téléchargements et lancer tes jeux sans quitter le launcher, utilise l’application de bureau (Windows, macOS, Linux). Elle lit l’état réel de ton client Steam.</p>
+        </div>
+        <RouterLink v-if="!desktop.available" to="/telecharger" class="flex h-11 items-center rounded-full bg-accent px-6 text-sm font-extrabold text-ink no-underline">Télécharger l’application</RouterLink>
+        <div v-else class="flex w-full flex-col">
+          <div v-for="[key, label, hint] in deskToggles" :key="key" class="flex items-center justify-between gap-5 border-t border-white/[0.07] py-4">
+            <div class="flex flex-col gap-[3px]"><label :for="'d-' + key" class="text-[15px] font-semibold">{{ label }}</label><span class="text-[13px] text-mute">{{ hint }}</span></div>
+            <input :id="'d-' + key" type="checkbox" class="nv-sw" :checked="desktop.settings[key]" @change="setSetting({ [key]: $event.target.checked })" />
+          </div>
+          <button type="button" class="mt-2 h-11 self-start rounded-full border border-white/20 bg-transparent px-5 text-sm font-semibold text-white hover:bg-white/10" @click="notify('G.A Launcher', 'Les notifications du bureau fonctionnent.', '/parametres')">Tester une notification</button>
         </div>
       </section>
 

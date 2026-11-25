@@ -10,15 +10,18 @@ import { fmt, homeGames, libraryAll } from '../data/games'
 import { connectSteam, displayName, steam } from '../composables/useSteam'
 import { toggleFav } from '../composables/useLaunch'
 import { theme } from '../composables/useTheme'
+import { desktop, isInstalled } from '../composables/useDesktop'
 import { prefersReduced } from '../composables/motion'
 
-const filters = {
+const filtersBase = {
   Tout: () => true,
   Favoris: (g) => g.fav,
   Gratuits: (g) => g.free,
   'En promotion': (g) => g.discount > 0,
   'Coopération': (g) => g.cats.some((c) => /Coopération/.test(c)),
 }
+// « Installés » n'existe que dans l'application de bureau, qui lit l'état réel de Steam.
+const filters = computed(() => (desktop.available ? { ...filtersBase, Installés: (g) => isInstalled(g.id) } : filtersBase))
 const sortsBase = ['Ajout récent', 'Nom', 'Prix', 'Metacritic']
 const connected = computed(() => steam.status === 'in' && steam.gamesVisible)
 const sorts = computed(() => (connected.value ? ['Temps de jeu', 'Joué récemment', ...sortsBase] : sortsBase))
@@ -28,7 +31,7 @@ const sort = ref(null)
 const sortNow = computed(() => (sorts.value.includes(sort.value) ? sort.value : sorts.value[0]))
 const all = libraryAll
 const list = computed(() => {
-  const l = all.value.filter(filters[f.value])
+  const l = all.value.filter(filters.value[f.value] ?? filters.value.Tout)
   if (sortNow.value === 'Temps de jeu') return [...l].sort((a, b) => (b.hours ?? 0) - (a.hours ?? 0))
   if (sortNow.value === 'Joué récemment') return [...l].sort((a, b) => (b.last ?? 0) - (a.last ?? 0))
   if (sortNow.value === 'Ajout récent') return [...l].reverse()
@@ -161,6 +164,7 @@ function leave(el, done) {
               <RouterLink :to="'/jeu/' + g.id" class="flex flex-col gap-3 text-white no-underline">
                 <div class="relative aspect-[2/3] overflow-hidden rounded-[22px] bg-panel shadow-[0_18px_40px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:-translate-y-1.5">
                   <img :src="g.cover" alt="" loading="lazy" class="block size-full object-cover transition-transform duration-700 group-hover:scale-110" @error="$event.target.src = g.wide" />
+                  <span v-if="desktop.available && isInstalled(g.id)" class="absolute bottom-2.5 left-2.5 rounded-full bg-accent px-[9px] py-[5px] text-[11px] font-extrabold tracking-[0.06em] text-ink">INSTALLÉ</span>
                   <span v-if="g.discount" class="absolute left-2.5 top-2.5 rounded-full bg-hot px-[9px] py-[5px] text-[11px] font-extrabold tracking-[0.06em] text-ink">-{{ g.discount }} %</span>
                 </div>
                 <span class="text-[15px] font-bold">{{ g.title }}</span>
