@@ -2,10 +2,12 @@
 // Colonne principale de la fiche : éditions, DLC, annonces, description complète — données réelles du magasin Steam.
 import { computed, ref } from 'vue'
 import { install } from '../composables/useLaunch'
-import { fmt } from '../data/games'
+import { RouterLink } from 'vue-router'
+import Modal from './Modal.vue'
 
 const props = defineProps({ game: { type: Object, required: true }, extra: { type: Object, default: null }, failed: Boolean })
 const more = ref(false)
+const reading = ref(null) // annonce ouverte dans le launcher
 const about = computed(() => props.extra?.about ?? [])
 const shown = computed(() => (more.value ? about.value : about.value.slice(0, 7)))
 const storeUrl = computed(() => `https://store.steampowered.com/app/${props.game.id}`)
@@ -40,10 +42,10 @@ const date = (t) => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', mo
         <div class="flex items-baseline justify-between gap-3"><h2 id="dlc-h" class="m-0 font-display text-[22px] font-extrabold tracking-[-0.01em]">Contenu additionnel</h2><span class="text-sm text-mute">{{ extra.dlcTotal }} contenu{{ extra.dlcTotal > 1 ? 's' : '' }}</span></div>
         <ul class="m-0 grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2">
           <li v-for="d in extra.dlc" :key="d.id">
-            <a :href="'https://store.steampowered.com/app/' + d.id" target="_blank" rel="noopener noreferrer" class="card flex items-center gap-4 overflow-hidden p-0 text-white no-underline transition-colors hover:border-white/20">
+            <RouterLink :to="'/jeu/' + d.id" class="card flex items-center gap-4 overflow-hidden p-0 text-white no-underline transition-colors hover:border-white/20">
               <img :src="d.header" alt="" loading="lazy" class="h-[72px] w-32 shrink-0 object-cover" />
               <span class="flex min-w-0 flex-1 flex-col gap-0.5 py-2 pr-4"><strong class="truncate text-sm">{{ d.title }}</strong><span class="text-xs text-mute">{{ d.price || '—' }}<span v-if="d.discount" class="ml-2 font-bold text-hot">-{{ d.discount }} %</span></span></span>
-            </a>
+            </RouterLink>
           </li>
         </ul>
       </section>
@@ -56,7 +58,7 @@ const date = (t) => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', mo
             <span class="text-xs font-bold tracking-[0.08em] text-accent">{{ n.label.toUpperCase() }} · {{ date(n.date) }}</span>
             <strong class="text-base leading-snug">{{ n.title }}</strong>
             <p v-if="n.text" class="m-0 line-clamp-3 text-sm text-soft">{{ n.text }}</p>
-            <a v-if="n.url" :href="n.url" target="_blank" rel="noopener noreferrer" class="mt-auto text-xs font-bold text-mute no-underline hover:text-white">Lire sur Steam ↗</a>
+            <button type="button" class="mt-auto self-start border-0 bg-transparent p-0 text-xs font-bold text-accent" @click="reading = n">Lire l’annonce</button>
           </li>
         </ul>
       </section>
@@ -74,5 +76,13 @@ const date = (t) => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', mo
         </div>
       </section>
     </template>
+
+    <Modal :open="!!reading" :title="reading?.title || ''" wide @close="reading = null">
+      <p class="m-0 mb-3 text-xs font-bold tracking-[0.08em] text-accent">{{ reading?.label?.toUpperCase() }} · {{ reading && date(reading.date) }}</p>
+      <div class="max-h-[55vh] overflow-y-auto pr-1">
+        <p v-for="(para, i) in (reading?.body || reading?.text || '').split('\n\n')" :key="i" class="m-0 mb-3 whitespace-pre-line text-sm leading-relaxed text-soft">{{ para }}</p>
+      </div>
+      <div class="mt-4 flex justify-end"><button type="button" class="h-11 rounded-full border border-white/20 bg-transparent px-5 text-sm font-semibold text-white hover:bg-white/10" @click="reading = null">Fermer</button></div>
+    </Modal>
   </div>
 </template>

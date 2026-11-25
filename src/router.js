@@ -5,6 +5,7 @@ const routes = [
   { path: '/accueil', name: 'home', component: () => import('./views/HomeView.vue'), meta: { title: 'Accueil' } },
   { path: '/jeu/:id', name: 'game', component: () => import('./views/GameView.vue'), meta: { title: 'Jeu' } },
   { path: '/magasin', name: 'store', component: () => import('./views/StoreView.vue'), meta: { title: 'Magasin' } },
+  { path: '/catalogue', name: 'catalog', component: () => import('./views/CatalogView.vue'), meta: { title: 'Catalogue' } },
   { path: '/bibliotheque', name: 'library', component: () => import('./views/LibraryView.vue'), meta: { title: 'Bibliothèque' } },
   { path: '/telecharger', name: 'download', component: () => import('./views/DownloadView.vue'), meta: { title: 'Télécharger' } },
   { path: '/parametres', name: 'settings', component: () => import('./views/SettingsView.vue'), meta: { title: 'Paramètres' } },

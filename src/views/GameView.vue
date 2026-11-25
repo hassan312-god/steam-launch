@@ -27,8 +27,9 @@ const reduced = prefersReduced()
 // Le jeu vient du catalogue, sinon il est chargé à la volée depuis Steam (/api/steam/app).
 const current = shallowRef(null)
 const failed = ref(false)
-const EMPTY = { id: '', title: '', cover: '', wide: '', header: '', desc: '', studio: '', year: '', price: '', genres: [], cats: [], shots: [], movies: [], ach: [], req: null, tags: [], moods: [], recs: 0, total: 0, discount: 0, free: false, metacritic: null, owned: false, fav: false, steam: false, local: false, hours: null }
+const EMPTY = { id: '', kind: 'game', parent: null, title: '', cover: '', wide: '', header: '', desc: '', studio: '', year: '', price: '', genres: [], cats: [], shots: [], movies: [], ach: [], req: null, tags: [], moods: [], recs: 0, total: 0, discount: 0, free: false, metacritic: null, owned: false, fav: false, steam: false, local: false, hours: null }
 const game = computed(() => current.value ?? EMPTY)
+const isGame = computed(() => (game.value.kind || 'game') === 'game')
 const extra = computed(() => extras[game.value.id] || null)
 const extraFailed = computed(() => extras[game.value.id] === false)
 const similar = computed(() => games.filter((g) => g.id !== game.value.id && g.genres.some((x) => game.value.genres.includes(x))).slice(0, 8))
@@ -138,12 +139,14 @@ onBeforeUnmount(() => ctx?.revert())
         </TiltedCard>
         <div class="flex min-w-0 flex-1 basis-[420px] flex-col gap-5">
           <div data-in class="flex flex-wrap items-center gap-2">
-            <span class="eyebrow">{{ game.genres.slice(0, 3).join(' · ') }}</span>
+            <RouterLink v-if="game.parent" :to="'/jeu/' + game.parent.id" class="eyebrow no-underline hover:underline">Contenu additionnel · {{ game.parent.name }}</RouterLink>
+            <span v-else class="eyebrow">{{ game.genres.slice(0, 3).join(' · ') }}</span>
             <span class="rounded-full bg-white/[0.14] px-3 py-1.5 text-xs font-bold tracking-[0.14em] backdrop-blur-md">{{ game.owned ? 'DANS MA BIBLIOTHÈQUE' : game.price || 'GRATUIT' }}</span>
           </div>
           <h1 class="m-0 font-display text-[clamp(32px,5.6vw,92px)] font-black uppercase leading-[0.95] tracking-[-0.03em]"><SplitText :key="game.id" :text="game.title" :stagger="0.02" /></h1>
           <p data-in class="m-0 text-[15px] text-soft">{{ game.studio }} · {{ game.year }}<span v-if="game.metacritic"> · Metacritic {{ game.metacritic }}</span></p>
           <div data-in class="flex flex-wrap items-center gap-3">
+            <template v-if="isGame">
             <Magnet :padding="30" :strength="0.25">
               <button v-if="game.owned && (!desktop.available || st?.installed)" type="button" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="play(game)">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6,4 20,12 6,20" /></svg>
@@ -161,6 +164,9 @@ onBeforeUnmount(() => ctx?.revert())
             <button v-else type="button" :aria-pressed="game.owned" class="flex h-[60px] items-center gap-2 rounded-full border px-6 text-[15px] font-semibold text-white transition-colors" :class="game.owned ? 'border-accent bg-accent/15' : 'border-white/[0.16] bg-ink/50 hover:bg-white/10'" @click="toggleLibrary(game)">
               {{ game.owned ? '✓ Dans ma bibliothèque' : '+ Ajouter à ma bibliothèque' }}
             </button>
+            </template>
+            <!-- Contenu additionnel : le paiement se fait chez Steam (seule étape hors du launcher) -->
+            <a v-else :href="steamUrl" target="_blank" rel="noopener noreferrer" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink no-underline">{{ game.price && game.price !== 'Gratuit' ? 'Acheter sur Steam · ' + game.price : 'Obtenir sur Steam' }}<span aria-hidden="true">↗</span></a>
             <button type="button" :aria-pressed="game.fav" :aria-label="game.fav ? 'Retirer des favoris' : 'Ajouter aux favoris'" class="flex size-[60px] items-center justify-center rounded-full border border-white/[0.16] bg-ink/50 transition-colors hover:bg-white/10" @click="toggleFav(game)">
               <svg width="20" height="20" viewBox="0 0 24 24" :fill="game.fav ? '#FF3D9A' : 'none'" stroke="#FF3D9A" stroke-width="2" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z" /></svg>
             </button>
@@ -240,7 +246,7 @@ onBeforeUnmount(() => ctx?.revert())
           </dl>
           </template>
           <GameMain :game="game" :extra="extra" :failed="extraFailed" class="mt-10" />
-          <Requirements :req="game.req" :key="game.id" class="mt-10 max-w-[820px]" />
+          <Requirements v-if="isGame" :req="game.req" :key="game.id" class="mt-10 max-w-[820px]" />
         </section>
 
         <div class="flex flex-col gap-8">
