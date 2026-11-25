@@ -162,12 +162,12 @@ onBeforeUnmount(() => ctx?.revert())
         <section class="flex flex-col gap-[18px]" aria-labelledby="genres-h">
           <h2 id="genres-h" class="m-0 font-display text-[22px] font-extrabold tracking-[-0.01em]">Explorer par genre</h2>
           <div v-reveal="{ children: true, stagger: 0.07 }" class="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3.5">
-            <button v-for="x in genres" :key="x.label" type="button" :aria-pressed="genre === x.label" class="group relative flex h-24 items-center justify-between overflow-hidden rounded-[20px] border-0 bg-panel px-5 text-left text-white transition-shadow duration-300" :class="genre === x.label ? 'shadow-[0_0_0_3px_var(--accent)]' : ''" @click="pickGenre(x.label)">
+            <RouterLink v-for="x in genres" :key="x.label" :to="'/genre/' + encodeURIComponent(x.label)" class="group relative flex h-24 items-center justify-between overflow-hidden rounded-[20px] bg-panel px-5 text-left text-white no-underline transition-shadow duration-300 hover:shadow-[0_0_0_3px_var(--accent)]">
               <img :src="x.game.wide" alt="" class="absolute inset-0 size-full object-cover saturate-[1.2] transition-transform duration-700 group-hover:scale-110" />
               <span class="absolute inset-0 transition-colors duration-300" :class="genre === x.label ? 'bg-ink/30' : 'bg-ink/55 group-hover:bg-ink/35'" />
               <span class="relative font-display text-[17px] font-extrabold transition-transform duration-300 group-hover:translate-x-1.5">{{ x.label }}</span>
               <span class="relative rounded-full bg-ink/60 px-2.5 py-1 text-xs font-bold backdrop-blur-md">{{ x.count }}</span>
-            </button>
+            </RouterLink>
           </div>
           <div v-if="genre" ref="genreSection" class="flex flex-col gap-5 pt-4">
             <div class="flex items-center justify-between gap-4">
