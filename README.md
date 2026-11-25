@@ -23,8 +23,9 @@ npm run desktop        # lance l'application (site en ligne)
 npm run desktop:build  # construit l'installateur de ton système dans release/
 ```
 
-Les installateurs Windows / macOS / Linux sont aussi construits par GitHub Actions
-(*Actions → Application de bureau → Run workflow*, ou en poussant un tag `v1.0.0`).
+Les installateurs Windows / macOS / Linux sont construits par GitHub Actions
+(*Actions → Application de bureau → Run workflow*, ou en poussant un tag `v1.0.0`) et publiés dans une Release publique
+(`desktop-latest` pour le lancement manuel) ; la page « Télécharger » du site lit cette Release.
 Les installateurs ne sont pas signés : Windows SmartScreen et macOS Gatekeeper demanderont une confirmation au premier lancement.
 
 ### Comment ça marche
