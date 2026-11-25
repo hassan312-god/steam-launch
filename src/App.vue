@@ -5,6 +5,7 @@ import gsap from 'gsap'
 import AppHeader from './components/AppHeader.vue'
 import Toaster from './components/Toaster.vue'
 import UpdateBanner from './components/UpdateBanner.vue'
+import SteamLoginModal from './components/SteamLoginModal.vue'
 import { prefersReduced } from './composables/motion'
 import { loadSteam, steam } from './composables/useSteam'
 import { desktop, notify, startDesktop } from './composables/useDesktop'
@@ -64,6 +65,7 @@ function leave(el, done) {
       </Transition>
     </RouterView>
     <Toaster />
+    <SteamLoginModal v-if="desktop.available && desktop.canCmd" />
     <UpdateBanner />
   </div>
 </template>

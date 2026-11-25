@@ -100,7 +100,7 @@ const list = computed(() => (showSearch.value ? found.value : items.value))
       <div data-head class="flex flex-wrap items-end justify-between gap-5">
         <div class="flex flex-col gap-2">
           <span class="eyebrow"><template v-if="mode === 'all' && total && !showSearch"><CountUp :to="total" :duration="1.4" /> jeux sur Steam</template><template v-else-if="mode === 'popular'">Top 100 · jeux les plus joués en ce moment</template><template v-else>Catalogue Steam</template></span>
-          <h1 class="page-title m-0"><SplitText text="Catalogue" :delay="0.15" /></h1>
+          <h1 class="page-title m-0">Catalogue</h1>
         </div>
         <div class="flex w-[380px] max-w-full flex-col gap-1.5">
           <label for="cq" class="text-xs font-semibold text-mute">Rechercher dans tout Steam</label>
@@ -121,7 +121,7 @@ const list = computed(() => (showSearch.value ? found.value : items.value))
           </div>
           <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Prix">
             <button v-for="[v, label] in PRICES" :key="v" type="button" :aria-pressed="price === v" class="h-10 rounded-full border px-4 text-sm font-semibold transition-colors" :class="price === v ? 'border-accent bg-accent/15 text-accent' : 'border-white/[0.14] bg-panel/80 text-white hover:border-white/40'" @click="price = v">{{ label }}</button>
-            <button type="button" :aria-pressed="adult" class="h-10 rounded-full border px-4 text-sm font-semibold transition-colors" :class="adult ? 'border-hot/60 bg-hot/10 text-hot' : 'border-white/[0.14] bg-panel/80 text-white hover:border-white/40'" @click="adult = !adult">{{ adult ? 'Contenu adulte affiché' : 'Contenu adulte masqué' }}</button>
+            <button type="button" :aria-pressed="adult" class="h-10 rounded-full border px-4 text-sm font-semibold transition-colors" :class="adult ? 'border-hot/60 bg-accent/10 text-hot' : 'border-white/[0.14] bg-panel/80 text-white hover:border-white/40'" @click="adult = !adult">{{ adult ? 'Contenu adulte affiché' : 'Contenu adulte masqué' }}</button>
             <span v-if="total" class="ml-2 text-sm text-mute" aria-live="polite">{{ fmt.format(total) }} jeu{{ total > 1 ? 'x' : '' }} · {{ fmt.format(items.length) }} affiché{{ items.length > 1 ? 's' : '' }}</span>
           </div>
         </template>
@@ -134,7 +134,7 @@ const list = computed(() => (showSearch.value ? found.value : items.value))
           <RouterLink v-for="(g, i) in list" :key="g.id" :data-i="i" :to="'/jeu/' + g.id" class="group flex flex-col gap-2.5 text-white no-underline">
             <div class="relative aspect-[2/3] overflow-hidden rounded-[20px] bg-panel shadow-[0_18px_40px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:-translate-y-1.5">
               <img :src="g.cover" alt="" loading="lazy" class="block size-full object-cover transition-transform duration-700 group-hover:scale-110" @error="$event.target.src = g.header" />
-              <span v-if="g.discount" class="absolute left-2.5 top-2.5 rounded-full bg-hot px-[9px] py-[5px] text-[11px] font-extrabold text-ink">-{{ g.discount }} %</span>
+              <span v-if="g.discount" class="absolute left-2.5 top-2.5 rounded-full bg-accent px-[9px] py-[5px] text-[11px] font-extrabold text-ink">-{{ g.discount }} %</span>
               <span class="absolute bottom-2.5 left-2.5 rounded-full bg-ink/80 px-2.5 py-1 text-[11px] font-extrabold backdrop-blur-md" :class="g.price === 'Gratuit' ? 'text-accent' : 'text-white'">{{ g.price }}</span>
             </div>
             <span class="text-[15px] font-bold leading-snug">{{ g.title }}</span>

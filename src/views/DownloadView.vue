@@ -2,8 +2,6 @@
 import { computed, onMounted, ref } from 'vue'
 import gsap from 'gsap'
 import SplitText from '../components/bits/SplitText.vue'
-import Magnet from '../components/bits/Magnet.vue'
-import ShinyText from '../components/bits/ShinyText.vue'
 import { desktop } from '../composables/useDesktop'
 import { prefersReduced } from '../composables/motion'
 
@@ -15,12 +13,6 @@ const isWindows = /Windows/i.test(navigator.userAgent)
 const mb = computed(() => (info.value ? (info.value.size / 1024 ** 2).toFixed(0) : ''))
 const date = computed(() => (info.value ? new Date(info.value.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : ''))
 
-const features = [
-  ['Installer et lancer', 'Tes jeux Steam s’installent, se lancent et se désinstallent depuis le launcher.'],
-  ['Téléchargements en direct', 'La progression réelle de chaque téléchargement, lue dans ton client Steam.'],
-  ['Notifications Windows', 'Téléchargement terminé, promotions sur tes favoris : dans le centre de notifications.'],
-  ['Toujours à portée', 'Réduit dans la zone de notification, démarrage avec Windows en option.'],
-]
 
 onMounted(async () => {
   try {
@@ -43,33 +35,27 @@ const steps = [
 
 <template>
   <div class="relative min-h-screen overflow-hidden bg-ink pt-[var(--header-h,100px)]">
-    <div aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-0 h-[560px] bg-[radial-gradient(60%_80%_at_50%_0%,color-mix(in_srgb,var(--accent)_22%,transparent),transparent)]" />
     <main class="shell relative flex flex-col gap-12 pb-20 pt-8">
       <section class="flex flex-col items-start gap-6">
-        <span data-in class="eyebrow">Application de bureau</span>
-        <h1 class="page-title m-0"><SplitText text="G.A Launcher pour Windows" :delay="0.15" /></h1>
-        <p data-in class="m-0 max-w-[640px] text-lg text-soft">Le launcher, en vrai logiciel : il pilote ton client Steam, suit tes téléchargements et t’envoie des notifications Windows.</p>
+        <h1 class="page-title m-0">G.A Launcher pour Windows</h1>
+        <p data-in class="m-0 max-w-[640px] text-lg text-soft">Installe, lance et télécharge tes jeux Steam sans ouvrir Steam. Notifications Windows, mises à jour automatiques.</p>
 
         <div v-if="desktop.available" data-in class="card p-6 text-soft">Tu utilises déjà l’application de bureau.</div>
         <div v-else-if="info" data-in class="flex flex-wrap items-center gap-5">
-          <Magnet :padding="30" :strength="0.25">
+          <span class="inline-flex">
             <a :href="info.url" class="flex h-[64px] items-center gap-3 rounded-full bg-accent px-9 text-[18px] font-extrabold text-ink no-underline">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" /></svg>
-              <ShinyText :speed="4">Télécharger pour Windows (.exe)</ShinyText>
+              <span>Télécharger pour Windows (.exe)</span>
             </a>
-          </Magnet>
+          </span>
           <span class="text-sm text-mute">Version {{ info.version }} · {{ mb }} Mo · {{ date }}</span>
         </div>
         <div v-else-if="loaded" data-in class="card flex max-w-[560px] flex-col gap-2 p-6">
           <strong>L’installateur arrive bientôt</strong>
           <span class="text-sm text-soft">Il est en cours de construction. Reviens dans quelques minutes.</span>
         </div>
-        <p v-if="info && !isWindows && !desktop.available" data-in class="m-0 text-sm text-amber">Cet installateur est pour Windows 10 / 11 (64 bits).</p>
+        <p v-if="info && !isWindows && !desktop.available" data-in class="m-0 text-sm text-soft">Cet installateur est pour Windows 10 / 11 (64 bits).</p>
       </section>
-
-      <ul data-in class="m-0 flex list-none flex-wrap gap-x-6 gap-y-2 p-0 text-[15px] font-semibold text-soft" aria-label="Fonctions">
-        <li v-for="[t] in features" :key="t" class="flex items-center gap-2"><span class="size-1.5 rounded-full bg-accent" aria-hidden="true" />{{ t }}</li>
-      </ul>
 
       <section class="flex max-w-[720px] flex-col gap-5" aria-labelledby="inst-h">
         <h2 id="inst-h" class="m-0 font-display text-xl font-extrabold">Installation en 3 étapes</h2>

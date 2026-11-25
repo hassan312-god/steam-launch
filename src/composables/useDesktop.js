@@ -2,11 +2,48 @@ import { reactive } from 'vue'
 import { toast } from './useToast'
 
 // Pont avec l'application de bureau (Electron). Dans un navigateur normal, `available` vaut false et rien ne change.
-export const desktop = reactive({ available: typeof window !== 'undefined' && !!window.launcher?.isDesktop, steamFound: false, libraries: 0, apps: {}, version: '', update: { status: 'idle', version: null, percent: 0, error: null }, settings: { openAtLogin: false, closeToTray: true, notifications: true }, canUpdate: typeof window !== 'undefined' && !!window.launcher?.update })
+export const desktop = reactive({ available: typeof window !== 'undefined' && !!window.launcher?.isDesktop, steamFound: false, libraries: 0, apps: {}, version: '', update: { status: 'idle', version: null, percent: 0, error: null }, settings: { openAtLogin: false, closeToTray: true, notifications: true }, canUpdate: typeof window !== 'undefined' && !!window.launcher?.update, canCmd: typeof window !== 'undefined' && !!window.launcher?.cmd, cmd: { ready: false, setup: { state: 'idle', message: '' }, account: null, auth: { state: 'idle', message: '' }, jobs: [] }, loginAsk: null })
 
 export const isInstalled = (id) => !!desktop.apps[id]?.installed
-export const dlState = (id) => desktop.apps[id] ?? null
-export const downloads = () => Object.values(desktop.apps).filter((a) => a.downloading)
+// Un téléchargement piloté par le launcher (SteamCMD) : même forme que l'état lu dans les manifestes de Steam.
+const fromJob = (j) => ({
+  appid: j.appid,
+  name: j.name,
+  installed: false,
+  downloading: true,
+  paused: j.status === 'paused',
+  queued: j.status === 'queued',
+  failed: j.status === 'error',
+  message: j.message,
+  phase: j.phase,
+  verify: j.verify,
+  progress: j.progress || 0,
+  bytesDownloaded: j.done || 0,
+  bytesToDownload: j.total || 0,
+  sizeOnDisk: 0,
+  speed: j.speed || 0,
+  eta: j.speed > 0 && j.total > j.done ? (j.total - j.done) / j.speed : null,
+  job: true,
+})
+const liveJobs = () => desktop.cmd.jobs.filter((j) => j.status !== 'done').map(fromJob)
+export const dlState = (id) => liveJobs().find((j) => j.appid === String(id)) ?? desktop.apps[id] ?? null
+export const downloads = () => {
+  const jobs = liveJobs()
+  const ids = new Set(jobs.map((j) => j.appid))
+  return [...jobs, ...Object.values(desktop.apps).filter((a) => a.downloading && !ids.has(a.appid))]
+}
+
+// Pilotage des téléchargements du launcher (SteamCMD) : pause, reprise, annulation, compte Steam.
+export const cmd = {
+  pause: (id) => window.launcher.cmd.pause(id),
+  resume: (id) => window.launcher.cmd.resume(id),
+  cancel: (id) => window.launcher.cmd.cancel(id),
+  login: (u, p) => window.launcher.cmd.login(u, p),
+  code: (c) => window.launcher.cmd.code(c),
+  cancelLogin: () => window.launcher.cmd.cancelLogin(),
+  logout: () => window.launcher.cmd.logout(),
+  install: (id, name) => window.launcher.cmd.install(id, name),
+}
 export const installedCount = () => Object.values(desktop.apps).filter((a) => a.installed).length
 
 // Notification native du système (centre de notifications de Windows) ; sans effet dans un navigateur.
@@ -51,6 +88,8 @@ export function startDesktop() {
   window.launcher.update?.get().then((u) => (desktop.update = u))
   window.launcher.update?.onState((u) => (desktop.update = u))
   window.launcher.getSettings().then((st) => (desktop.settings = st))
+  window.launcher.cmd?.state().then((st) => (desktop.cmd = st))
+  window.launcher.cmd?.onState((st) => (desktop.cmd = st))
   window.launcher.scan().then(apply)
   window.launcher.onState(apply)
 }

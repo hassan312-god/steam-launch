@@ -12,11 +12,7 @@
   --color-fog: #e4e5ec;
   --color-soft: #c8c9d2;
   --color-mute: #a7a9b6;
-  --color-hot: #ff3d9a;
-  --color-cyan: #2bd9ff;
-  --color-flame: #ff7a2f;
-  --color-gold: #f5c451;
-  --color-amber: #ffc857;
+  --color-hot: #ff5d6c; /* erreurs uniquement */
 }
 
 /* La couleur d'accent est pilotée en direct depuis les Paramètres. */
@@ -87,11 +83,9 @@
     border-radius: 24px;
   }
   .eyebrow {
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.2em;
-    color: var(--accent);
-    text-transform: uppercase;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-mute);
   }
   .page-title {
     font-family: var(--font-display);

@@ -82,7 +82,7 @@ function leave(el, done) {
     <main class="shell relative flex flex-col gap-8 pb-14 pt-2">
       <div data-head class="flex flex-col gap-2">
         <span class="eyebrow">La collection de {{ displayName }}</span>
-        <h1 class="page-title m-0"><SplitText text="Bibliothèque" :delay="0.15" /></h1>
+        <h1 class="page-title m-0">Bibliothèque</h1>
       </div>
 
       <!-- Bibliothèque vide : on invite à choisir de vrais jeux -->
@@ -136,10 +136,10 @@ function leave(el, done) {
           <TransitionGroup :css="false" appear move-class="lib-move" @enter="enter" @leave="leave">
             <div v-for="(g, i) in list" :key="g.id" :data-i="i" class="group relative flex flex-col gap-3">
               <RouterLink :to="'/jeu/' + g.id" class="flex flex-col gap-3 text-white no-underline">
-                <div class="relative aspect-[2/3] overflow-hidden rounded-[22px] bg-panel shadow-[0_18px_40px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:-translate-y-1.5">
+                <div class="relative aspect-[2/3] overflow-hidden rounded-[20px] bg-panel shadow-[0_18px_40px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:-translate-y-1.5">
                   <img :src="g.cover" alt="" loading="lazy" class="block size-full object-cover transition-transform duration-700 group-hover:scale-110" @error="$event.target.src = g.wide" />
                   <span v-if="desktop.available && isInstalled(g.id)" class="absolute bottom-2.5 left-2.5 rounded-full bg-accent px-[9px] py-[5px] text-[11px] font-extrabold tracking-[0.06em] text-ink">INSTALLÉ</span>
-                  <span v-if="g.discount" class="absolute left-2.5 top-2.5 rounded-full bg-hot px-[9px] py-[5px] text-[11px] font-extrabold tracking-[0.06em] text-ink">-{{ g.discount }} %</span>
+                  <span v-if="g.discount" class="absolute left-2.5 top-2.5 rounded-full bg-accent px-[9px] py-[5px] text-[11px] font-extrabold tracking-[0.06em] text-ink">-{{ g.discount }} %</span>
                 </div>
                 <span class="text-[15px] font-bold">{{ g.title }}</span>
                 <span class="-mt-1.5 text-xs text-mute">{{ g.hours != null ? fmt.format(g.hours) + ' h de jeu' : (g.genres || []).slice(0, 2).join(' · ') }}</span>

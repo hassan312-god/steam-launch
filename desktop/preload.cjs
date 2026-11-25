@@ -29,6 +29,22 @@ contextBridge.exposeInMainWorld('launcher', {
     ipcRenderer.on('navigate', fn)
     return () => ipcRenderer.removeListener('navigate', fn)
   },
+  cmd: {
+    state: () => ipcRenderer.invoke('steamcmd:state'),
+    login: (user, password) => ipcRenderer.invoke('steamcmd:login', { user: String(user), password: String(password) }),
+    code: (code) => ipcRenderer.invoke('steamcmd:code', String(code)),
+    cancelLogin: () => ipcRenderer.invoke('steamcmd:cancel-login'),
+    logout: () => ipcRenderer.invoke('steamcmd:logout'),
+    install: (appid, name) => ipcRenderer.invoke('steamcmd:install', { appid: String(appid), name: String(name || '') }),
+    pause: (id) => ipcRenderer.invoke('steamcmd:pause', String(id)),
+    resume: (id) => ipcRenderer.invoke('steamcmd:resume', String(id)),
+    cancel: (id) => ipcRenderer.invoke('steamcmd:cancel', String(id)),
+    onState: (cb) => {
+      const fn = (_e, st) => cb(st)
+      ipcRenderer.on('steamcmd:state', fn)
+      return () => ipcRenderer.removeListener('steamcmd:state', fn)
+    },
+  },
   onState: (cb) => {
     const fn = (_e, state) => cb(state)
     ipcRenderer.on('steam:state', fn)

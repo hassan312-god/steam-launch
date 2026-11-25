@@ -10,7 +10,7 @@ const gb = (n) => (n / 1024 ** 3).toLocaleString('fr-FR', { maximumFractionDigit
 <template>
   <div class="glass flex w-full max-w-[520px] flex-col gap-2 rounded-2xl p-4" role="status">
     <div class="flex items-center justify-between text-sm font-bold">
-      <span>{{ app.paused ? 'Téléchargement en pause' : 'Téléchargement en cours' }}</span>
+      <span>{{ app.failed ? 'Téléchargement interrompu' : app.queued ? 'En attente' : app.paused ? 'Téléchargement en pause' : app.phase === 'verifying' ? 'Vérification des fichiers' : 'Téléchargement en cours' }}</span>
       <span class="tabular-nums text-accent">{{ pct }} %</span>
     </div>
     <div class="h-2 overflow-hidden rounded-full bg-white/[0.14]" role="progressbar" :aria-valuenow="pct" aria-valuemin="0" aria-valuemax="100">

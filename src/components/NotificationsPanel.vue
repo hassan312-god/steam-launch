@@ -28,7 +28,7 @@ watch(() => props.open, async (o) => {
         <RouterLink :to="n.to" class="flex items-start gap-3 rounded-2xl p-3 text-white no-underline transition-colors hover:bg-white/5" @click="emit('close')">
           <img :src="n.cover" alt="" class="h-14 w-10 shrink-0 rounded-lg object-cover" />
           <span class="flex min-w-0 flex-col gap-0.5"><span class="text-sm leading-snug">{{ n.text }}</span><span class="text-xs text-mute">{{ n.when }}</span></span>
-          <span v-if="unread" class="mt-2 size-2 shrink-0 rounded-full bg-hot" aria-label="Non lu" />
+          <span v-if="unread" class="mt-2 size-2 shrink-0 rounded-full bg-accent" aria-label="Non lu" />
         </RouterLink>
       </li>
     </ul>

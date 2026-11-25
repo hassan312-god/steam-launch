@@ -5,8 +5,6 @@ import gsap from 'gsap'
 import SplitText from '../components/bits/SplitText.vue'
 import BlurText from '../components/bits/BlurText.vue'
 import CountUp from '../components/bits/CountUp.vue'
-import Magnet from '../components/bits/Magnet.vue'
-import ShinyText from '../components/bits/ShinyText.vue'
 import Ring from '../components/bits/Ring.vue'
 import SpotlightCard from '../components/bits/SpotlightCard.vue'
 import TiltedCard from '../components/bits/TiltedCard.vue'
@@ -145,16 +143,16 @@ onBeforeUnmount(() => ctx?.revert())
           <p data-in class="m-0 text-[15px] text-soft">{{ game.studio }} · {{ game.year }}<span v-if="game.metacritic"> · Metacritic {{ game.metacritic }}</span></p>
           <div data-in class="flex flex-wrap items-center gap-3">
             <template v-if="isGame">
-            <Magnet :padding="30" :strength="0.25">
+            <span class="inline-flex">
               <button v-if="game.owned && (!desktop.available || st?.installed)" type="button" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="play(game)">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6,4 20,12 6,20" /></svg>
-                <ShinyText :speed="4">Jouer</ShinyText>
+                <span>Jouer</span>
               </button>
               <button v-else-if="game.owned && st?.downloading" type="button" disabled class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent/40 px-10 text-[17px] font-extrabold text-ink">Téléchargement…</button>
-              <button v-else-if="game.owned" type="button" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="install(game)"><ShinyText :speed="4">Installer</ShinyText></button>
-              <button v-else-if="game.free" type="button" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="install(game)"><ShinyText :speed="4">Installer gratuitement</ShinyText></button>
-              <a v-else :href="steamUrl" target="_blank" rel="noopener noreferrer" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink no-underline"><ShinyText :speed="4">{{ buyLabel }}</ShinyText></a>
-            </Magnet>
+              <button v-else-if="game.owned" type="button" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="install(game)"><span>Installer</span></button>
+              <button v-else-if="game.free" type="button" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="install(game)"><span>Installer gratuitement</span></button>
+              <a v-else :href="steamUrl" target="_blank" rel="noopener noreferrer" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink no-underline"><span>{{ buyLabel }}</span></a>
+            </span>
             <button v-if="game.owned && !desktop.available" type="button" class="flex h-[60px] items-center gap-2 rounded-full border border-white/[0.16] bg-ink/50 px-6 text-[15px] font-semibold text-white transition-colors hover:bg-white/10" @click="install(game)">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" /></svg>Installer
             </button>
@@ -209,7 +207,7 @@ onBeforeUnmount(() => ctx?.revert())
         <h2 id="sim-h" class="m-0 font-display text-[22px] font-extrabold tracking-[-0.01em]">Tu aimeras aussi</h2>
         <div v-reveal="{ children: true, stagger: 0.08 }" class="no-scrollbar flex gap-[18px] overflow-x-auto px-1 py-3">
           <RouterLink v-for="s in similar" :key="s.id" :to="'/jeu/' + s.id" class="flex w-[180px] shrink-0 flex-col gap-3 text-white no-underline 2xl:w-[220px]">
-            <TiltedCard class="aspect-[2/3] overflow-hidden rounded-[22px]"><img :src="s.cover" alt="" loading="lazy" class="block size-full rounded-[22px] object-cover" /></TiltedCard>
+            <TiltedCard class="aspect-[2/3] overflow-hidden rounded-[20px]"><img :src="s.cover" alt="" loading="lazy" class="block size-full rounded-[20px] object-cover" /></TiltedCard>
             <span class="text-[15px] font-bold">{{ s.title }}</span>
             <span class="-mt-2 text-xs text-mute">{{ s.genres.slice(0, 2).join(' · ') }}</span>
           </RouterLink>

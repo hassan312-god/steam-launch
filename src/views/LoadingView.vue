@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 import gsap from 'gsap'
 import Logo from '../components/Logo.vue'
 import BlurText from '../components/bits/BlurText.vue'
-import Magnet from '../components/bits/Magnet.vue'
 import { fmt, games } from '../data/games'
 import { prefersReduced } from '../composables/motion'
 
@@ -74,7 +73,7 @@ watch(done, async (v) => {
       <h1 data-logo class="m-0 flex overflow-hidden pb-2 leading-[0.85]" aria-label="G.A">
         <span class="block w-full max-w-[460px]"><Logo fit full /></span>
       </h1>
-      <BlurText tag="p" text="Tous tes jeux. Un seul endroit. On prépare le catalogue." :delay="0.7" class="m-0 text-xl leading-normal text-soft" />
+      <BlurText tag="p" text="On charge le catalogue Steam." :delay="0.7" class="m-0 text-xl leading-normal text-soft" />
 
       <div class="mt-3 flex flex-col gap-3">
         <div class="flex gap-1.5" role="img" :aria-label="`Chargement ${pct} %`">
@@ -87,12 +86,12 @@ watch(done, async (v) => {
       </div>
 
       <div ref="enter" class="self-start" :class="{ invisible: !done }">
-        <Magnet :padding="40" :strength="0.3">
+        <span class="inline-flex">
           <button type="button" class="flex h-[52px] items-center gap-2.5 rounded-full bg-accent px-7 text-[15px] font-bold text-ink" @click="go">
             Entrer
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12,5 19,12 12,19" /></svg>
           </button>
-        </Magnet>
+        </span>
       </div>
     </div>
   </main>

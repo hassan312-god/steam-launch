@@ -75,7 +75,7 @@ onBeforeUnmount(() => ctx?.revert())
       <div data-head class="flex flex-wrap items-end justify-between gap-5">
         <div class="flex flex-col gap-2">
           <span class="eyebrow">{{ fmt.format(games.length) }} jeux du catalogue Steam</span>
-          <h1 class="page-title m-0"><SplitText text="Magasin" :delay="0.15" /></h1>
+          <h1 class="page-title m-0">Magasin</h1>
         </div>
         <div class="flex w-[360px] max-w-full flex-col gap-1.5">
           <label for="sq" class="text-xs font-semibold text-mute">Rechercher dans le magasin</label>
@@ -89,7 +89,7 @@ onBeforeUnmount(() => ctx?.revert())
         <p v-if="searchError" class="m-0 text-sm text-mute" role="alert">La recherche Steam est indisponible pour le moment : seuls les jeux du launcher sont affichés.</p>
         <div class="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-x-5 gap-y-7">
           <RouterLink v-for="g in found" :key="g.id" :to="'/jeu/' + g.id" class="group flex flex-col gap-2.5 text-white no-underline">
-            <div class="relative aspect-[2/3] overflow-hidden rounded-[20px] bg-panel shadow-[0_18px_40px_rgba(0,0,0,0.5)]"><img :src="g.cover" alt="" loading="lazy" class="block size-full object-cover transition-transform duration-700 group-hover:scale-110" @error="$event.target.src = g.header" /><span v-if="g.discount" class="absolute left-2.5 top-2.5 rounded-full bg-hot px-[9px] py-[5px] text-[11px] font-extrabold text-ink">-{{ g.discount }} %</span></div>
+            <div class="relative aspect-[2/3] overflow-hidden rounded-[20px] bg-panel shadow-[0_18px_40px_rgba(0,0,0,0.5)]"><img :src="g.cover" alt="" loading="lazy" class="block size-full object-cover transition-transform duration-700 group-hover:scale-110" @error="$event.target.src = g.header" /><span v-if="g.discount" class="absolute left-2.5 top-2.5 rounded-full bg-accent px-[9px] py-[5px] text-[11px] font-extrabold text-ink">-{{ g.discount }} %</span></div>
             <span class="text-[15px] font-bold">{{ g.title }}</span>
             <span class="-mt-1.5 text-xs text-mute">{{ g.price || 'Gratuit' }}</span>
           </RouterLink>
@@ -103,7 +103,7 @@ onBeforeUnmount(() => ctx?.revert())
             <img :src="featured.wide" alt="" class="absolute inset-0 size-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105" />
             <div class="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/20 via-60% to-transparent" />
             <div class="relative flex flex-col gap-3 p-7">
-              <span class="self-start rounded-full bg-accent px-3 py-[7px] text-[13px] font-bold text-ink">MEILLEURE VENTE</span>
+              <span class="self-start text-sm font-semibold text-soft">Meilleure vente</span>
               <span class="font-display text-[clamp(32px,4vw,44px)] font-black uppercase leading-[0.95]">{{ featured.title }}</span>
               <span class="line-clamp-2 max-w-[560px] text-[15px] text-[#D7D8E0]">{{ featured.desc }}</span>
               <div class="mt-1.5 flex items-center gap-3.5">
@@ -117,15 +117,15 @@ onBeforeUnmount(() => ctx?.revert())
             <img :src="deal.wide" alt="" class="absolute inset-0 size-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105" />
             <div class="absolute inset-0 bg-gradient-to-r from-ink/90 to-ink/20 to-70%" />
             <div class="relative flex max-w-[60%] flex-col gap-2 p-6">
-              <span class="text-xs font-bold tracking-[0.14em] text-hot">PLUS GROSSE PROMOTION</span>
+              <span class="text-sm font-semibold text-soft">Plus grosse promotion</span>
               <span class="font-display text-[26px] font-extrabold">{{ deal.title }}</span>
-              <span class="flex items-baseline gap-2.5 text-[15px]"><strong class="text-xl">{{ deal.price }}</strong><span v-if="deal.discount" class="rounded-md bg-hot px-2 py-[3px] text-xs font-extrabold text-ink">-{{ deal.discount }} %</span></span>
+              <span class="flex items-baseline gap-2.5 text-[15px]"><strong class="text-xl">{{ deal.price }}</strong><span v-if="deal.discount" class="rounded-md bg-accent px-2 py-[3px] text-xs font-extrabold text-ink">-{{ deal.discount }} %</span></span>
             </div>
           </SpotlightCard>
 
           <SpotlightCard tag="RouterLink" :to="'/jeu/' + rated.id" data-tile class="card group">
             <span class="relative flex h-full flex-col gap-3 p-[22px] text-white no-underline">
-              <span class="text-xs font-bold tracking-[0.14em] text-cyan">MIEUX NOTÉ</span>
+              <span class="text-sm font-semibold text-soft">Mieux noté</span>
               <span class="font-display text-5xl font-black leading-none text-accent">{{ rated.metacritic }}</span>
               <span class="mt-auto font-display text-xl font-extrabold">{{ rated.title }}</span>
               <span class="text-[13px] text-mute">Metacritic · {{ rated.price || 'Gratuit' }}</span>
@@ -136,7 +136,7 @@ onBeforeUnmount(() => ctx?.revert())
             <img :src="free.wide" alt="" class="absolute inset-0 size-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105" />
             <div class="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/20 via-60% to-transparent" />
             <div class="relative flex flex-col gap-1.5 p-[22px]">
-              <span class="self-start rounded-full bg-white px-2.5 py-[5px] text-xs font-extrabold text-ink">GRATUIT À JOUER</span>
+              <span class="self-start text-sm font-semibold text-soft">Gratuit à jouer</span>
               <span class="font-display text-xl font-extrabold">{{ free.title }}</span>
             </div>
           </SpotlightCard>
@@ -147,9 +147,9 @@ onBeforeUnmount(() => ctx?.revert())
           <div class="flex items-baseline justify-between gap-4"><h2 :id="'r-' + r.id" class="m-0 font-display text-[22px] font-extrabold tracking-[-0.01em]">{{ r.title }}</h2><span class="flex items-center gap-4"><span class="hidden text-sm text-mute sm:inline">{{ r.sub }}</span><button type="button" :aria-expanded="opened.has(r.id)" class="h-9 rounded-full border border-white/[0.18] bg-transparent px-4 text-[13px] font-bold text-white hover:bg-white/10" @click="toggle(r.id)">{{ opened.has(r.id) ? 'Réduire' : 'Voir plus' }}</button></span></div>
           <div :class="opened.has(r.id) ? 'grid grid-cols-2 gap-5 px-1 py-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6' : 'no-scrollbar flex gap-[18px] overflow-x-auto px-1 py-3'">
             <RouterLink v-for="g in r.list" :key="g.id" :to="'/jeu/' + g.id" class="flex shrink-0 flex-col gap-3 text-white no-underline" :class="opened.has(r.id) ? '' : 'w-[190px] 2xl:w-[220px]'">
-              <TiltedCard class="aspect-[2/3] overflow-hidden rounded-[22px]">
-                <img :src="g.cover" alt="" loading="lazy" class="block size-full rounded-[22px] object-cover" />
-                <span v-if="g.discount" class="absolute bottom-3 left-3 rounded-md bg-hot px-2 py-1 text-xs font-extrabold text-ink">-{{ g.discount }} %</span>
+              <TiltedCard class="aspect-[2/3] overflow-hidden rounded-[20px]">
+                <img :src="g.cover" alt="" loading="lazy" class="block size-full rounded-[20px] object-cover" />
+                <span v-if="g.discount" class="absolute bottom-3 left-3 rounded-md bg-accent px-2 py-1 text-xs font-extrabold text-ink">-{{ g.discount }} %</span>
                 <span v-else-if="r.id === 'rated'" class="absolute right-3 top-3 rounded-full bg-ink/80 px-2.5 py-1 text-xs font-extrabold text-accent">{{ g.metacritic }}</span>
               </TiltedCard>
               <span class="text-[15px] font-bold">{{ g.title }}</span>
