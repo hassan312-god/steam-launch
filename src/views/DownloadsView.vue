@@ -44,9 +44,9 @@ const stateOf = (a) => (a.failed ? 'Erreur' : a.queued ? 'En attente' : a.paused
       <template v-else>
         <div v-if="desktop.canCmd" class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/[0.07] bg-panel px-5 py-4">
           <span v-if="desktop.cmd.account" class="text-sm text-soft">Téléchargements du launcher · compte <strong class="text-white">{{ desktop.cmd.account }}</strong></span>
-          <span v-else class="text-sm text-soft">{{ steam.status === 'in' ? 'Tu es connecté à Steam sur le site, mais télécharger ici demande ton mot de passe, une seule fois.' : 'Pour télécharger directement dans le launcher, avec pause et reprise, connecte ton compte Steam.' }}</span>
+          <span v-else class="text-sm text-soft">Les installations passent par ton client Steam, déjà connecté : le launcher en suit la progression ici. Option : télécharger dans le launcher, avec pause et reprise (mot de passe demandé une fois).</span>
           <button v-if="desktop.cmd.account" type="button" class="h-10 rounded-full border border-white/20 bg-transparent px-4 text-sm font-semibold text-white hover:bg-white/10" @click="cmd.logout()">Se déconnecter</button>
-          <button v-else type="button" class="h-10 rounded-full bg-accent px-5 text-sm font-extrabold text-ink" @click="desktop.loginAsk = { game: null }">Entrer mon mot de passe</button>
+          <button v-else type="button" class="h-10 rounded-full bg-accent px-5 text-sm font-extrabold text-ink" @click="desktop.loginAsk = { game: null }">Activer</button>
         </div>
         <p v-if="!desktop.steamFound && !desktop.canCmd" class="m-0 rounded-3xl border border-dashed border-white/20 p-8 text-soft">Steam est introuvable sur cet ordinateur : installe le client Steam et connecte-toi dedans.</p>
 
