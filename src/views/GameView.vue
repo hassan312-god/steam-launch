@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import gsap from 'gsap'
 import SplitText from '../components/bits/SplitText.vue'
@@ -12,14 +12,18 @@ import SpotlightCard from '../components/bits/SpotlightCard.vue'
 import TiltedCard from '../components/bits/TiltedCard.vue'
 import TrailerVideo from '../components/TrailerVideo.vue'
 import Requirements from '../components/Requirements.vue'
-import { byId, fmt, games } from '../data/games'
+import { fmt, games, getGame } from '../data/games'
 import { theme } from '../composables/useTheme'
-import { play, toggleFav, toggleLibrary } from '../composables/useLaunch'
+import { install, play, toggleFav, toggleLibrary } from '../composables/useLaunch'
 import { prefersReduced } from '../composables/motion'
 
 const route = useRoute()
 const reduced = prefersReduced()
-const game = computed(() => byId[route.params.id] ?? games[0])
+// Le jeu vient du catalogue, sinon il est chargé à la volée depuis Steam (/api/steam/app).
+const current = shallowRef(null)
+const failed = ref(false)
+const EMPTY = { id: '', title: '', cover: '', wide: '', header: '', desc: '', studio: '', year: '', price: '', genres: [], cats: [], shots: [], movies: [], ach: [], req: null, tags: [], moods: [], recs: 0, total: 0, discount: 0, free: false, metacritic: null, owned: false, fav: false, steam: false, local: false, hours: null }
+const game = computed(() => current.value ?? EMPTY)
 const similar = computed(() => games.filter((g) => g.id !== game.value.id && g.genres.some((x) => game.value.genres.includes(x))).slice(0, 8))
 const buyLabel = computed(() => (game.value.free ? 'Jouer gratuitement' : 'Acheter · ' + (game.value.price || 'sur Steam')))
 const steamUrl = computed(() => `https://store.steampowered.com/app/${game.value.id}`)
@@ -66,8 +70,17 @@ function intro() {
     gsap.from('[data-ach]', { opacity: 0, x: -24, stagger: 0.08, duration: 0.6, ease: 'power3.out', delay: 1.2 })
   }, root.value)
 }
-onMounted(intro)
-watch(() => route.params.id, async () => {
+watch(() => route.params.id, async (id) => {
+  current.value = null
+  failed.value = false
+  try {
+    current.value = await getGame(id)
+  } catch {
+    failed.value = true
+  }
+}, { immediate: true })
+watch(current, async (g) => {
+  if (!g) return
   await nextTick()
   window.scrollTo({ top: 0 })
   intro()
@@ -77,7 +90,7 @@ onBeforeUnmount(() => ctx?.revert())
 
 <template>
   <div ref="root" class="relative min-h-screen overflow-hidden bg-ink pt-[var(--header-h,100px)]">
-    <div class="pointer-events-none absolute inset-x-0 top-0 h-[min(900px,100vh)] overflow-hidden" aria-hidden="true">
+    <div v-if="current" class="pointer-events-none absolute inset-x-0 top-0 h-[min(900px,100vh)] overflow-hidden" aria-hidden="true">
       <img :src="game.wide" alt="" class="absolute inset-0 size-full object-cover" />
       <Transition :css="false" appear @enter="bgEnter" @leave="bgLeave">
         <div v-if="item" :key="item.hls || item.full" class="absolute inset-0">
@@ -92,7 +105,18 @@ onBeforeUnmount(() => ctx?.revert())
       <div class="absolute inset-0" style="background: linear-gradient(180deg, rgba(6,6,10,0.7) 0%, rgba(6,6,10,0) 25%, rgba(6,6,10,0.35) 60%, #06060A 100%)" />
     </div>
 
-    <main class="shell relative flex flex-col gap-12 pb-16 pt-6">
+    <main v-if="!current" class="shell relative flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center" :aria-busy="!failed">
+      <template v-if="failed">
+        <h1 class="m-0 font-display text-3xl font-black">Jeu introuvable</h1>
+        <p class="m-0 text-soft">Steam ne connaît pas ce jeu ou la vitrine est indisponible.</p>
+        <RouterLink to="/magasin" class="flex h-12 items-center rounded-full bg-accent px-6 font-extrabold text-ink no-underline">Retour au magasin</RouterLink>
+      </template>
+      <template v-else>
+        <span class="size-10 animate-spin rounded-full border-4 border-white/15 border-t-accent" aria-hidden="true" />
+        <p class="m-0 text-soft">Chargement du jeu depuis Steam…</p>
+      </template>
+    </main>
+    <main v-else class="shell relative flex flex-col gap-12 pb-16 pt-6">
       <RouterLink data-in to="/bibliotheque" class="flex w-fit items-center gap-2 text-sm font-semibold text-soft no-underline transition-colors hover:text-white">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="15,5 8,12 15,19" /></svg>Bibliothèque
       </RouterLink>
@@ -115,8 +139,12 @@ onBeforeUnmount(() => ctx?.revert())
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6,4 20,12 6,20" /></svg>
                 <ShinyText :speed="4">Jouer</ShinyText>
               </button>
+              <button v-else-if="game.free" type="button" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink" @click="install(game)"><ShinyText :speed="4">Installer gratuitement</ShinyText></button>
               <a v-else :href="steamUrl" target="_blank" rel="noopener noreferrer" class="flex h-[60px] items-center gap-2.5 rounded-full bg-accent px-10 text-[17px] font-extrabold text-ink no-underline"><ShinyText :speed="4">{{ buyLabel }}</ShinyText></a>
             </Magnet>
+            <button v-if="game.owned" type="button" class="flex h-[60px] items-center gap-2 rounded-full border border-white/[0.16] bg-ink/50 px-6 text-[15px] font-semibold text-white transition-colors hover:bg-white/10" @click="install(game)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" /></svg>Installer
+            </button>
             <span v-if="game.steam && !game.local" class="flex h-[60px] items-center gap-2 rounded-full border border-accent bg-accent/15 px-6 text-[15px] font-semibold text-white">✓ Dans ta bibliothèque Steam</span>
             <button v-else type="button" :aria-pressed="game.owned" class="flex h-[60px] items-center gap-2 rounded-full border px-6 text-[15px] font-semibold text-white transition-colors" :class="game.owned ? 'border-accent bg-accent/15' : 'border-white/[0.16] bg-ink/50 hover:bg-white/10'" @click="toggleLibrary(game)">
               {{ game.owned ? '✓ Dans ma bibliothèque' : '+ Ajouter à ma bibliothèque' }}
@@ -124,7 +152,7 @@ onBeforeUnmount(() => ctx?.revert())
             <button type="button" :aria-pressed="game.fav" :aria-label="game.fav ? 'Retirer des favoris' : 'Ajouter aux favoris'" class="flex size-[60px] items-center justify-center rounded-full border border-white/[0.16] bg-ink/50 transition-colors hover:bg-white/10" @click="toggleFav(game)">
               <svg width="20" height="20" viewBox="0 0 24 24" :fill="game.fav ? '#FF3D9A' : 'none'" stroke="#FF3D9A" stroke-width="2" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z" /></svg>
             </button>
-            <a :href="steamUrl" target="_blank" rel="noopener noreferrer" class="flex h-[60px] items-center rounded-full px-5 text-sm font-semibold text-soft no-underline transition-colors hover:text-white">Voir sur Steam ↗</a>
+            
           </div>
         </div>
       </section>

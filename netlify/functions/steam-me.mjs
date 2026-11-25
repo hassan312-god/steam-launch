@@ -5,7 +5,7 @@ export default async (req) => {
   const json = (d, status = 200) => Response.json(d, { status, headers: { 'cache-control': 'private, no-store' } })
   if (!apiKey()) return json({ error: 'not_configured' }, 503)
   const id = readSession(req)
-  if (!id) return json({ error: 'not_logged_in' }, 401)
+  if (!id) return json({ loggedIn: false })
   try {
     const [sum, owned] = await Promise.all([
       steam('/ISteamUser/GetPlayerSummaries/v2/', { steamids: id }),

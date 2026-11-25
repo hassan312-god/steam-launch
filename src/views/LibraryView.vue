@@ -158,14 +158,14 @@ function leave(el, done) {
         <div class="grid gap-x-5 gap-y-[30px]" :style="{ gridTemplateColumns: `repeat(auto-fill, minmax(${minCol}px, 1fr))` }">
           <TransitionGroup :css="false" appear move-class="lib-move" @enter="enter" @leave="leave">
             <div v-for="(g, i) in list" :key="g.id" :data-i="i" class="group relative flex flex-col gap-3">
-              <component :is="g.external ? 'a' : 'RouterLink'" v-bind="g.external ? { href: 'https://store.steampowered.com/app/' + g.id, target: '_blank', rel: 'noopener noreferrer' } : { to: '/jeu/' + g.id }" class="flex flex-col gap-3 text-white no-underline">
+              <RouterLink :to="'/jeu/' + g.id" class="flex flex-col gap-3 text-white no-underline">
                 <div class="relative aspect-[2/3] overflow-hidden rounded-[22px] bg-panel shadow-[0_18px_40px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:-translate-y-1.5">
                   <img :src="g.cover" alt="" loading="lazy" class="block size-full object-cover transition-transform duration-700 group-hover:scale-110" @error="$event.target.src = g.wide" />
                   <span v-if="g.discount" class="absolute left-2.5 top-2.5 rounded-full bg-hot px-[9px] py-[5px] text-[11px] font-extrabold tracking-[0.06em] text-ink">-{{ g.discount }} %</span>
                 </div>
                 <span class="text-[15px] font-bold">{{ g.title }}</span>
                 <span class="-mt-1.5 text-xs text-mute">{{ g.hours != null ? fmt.format(g.hours) + ' h de jeu' : (g.genres || []).slice(0, 2).join(' · ') }}</span>
-              </component>
+              </RouterLink>
               <button v-if="!g.external" type="button" :aria-pressed="g.fav" :aria-label="g.fav ? 'Retirer des favoris' : 'Ajouter aux favoris'" class="absolute right-2.5 top-2.5 flex size-[34px] items-center justify-center rounded-full border-0 bg-ink/70 transition-transform hover:scale-110" @click="toggleFav(g)">
                 <svg width="15" height="15" viewBox="0 0 24 24" :fill="g.fav ? '#FF3D9A' : 'none'" stroke="#FF3D9A" stroke-width="2" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z" /></svg>
               </button>

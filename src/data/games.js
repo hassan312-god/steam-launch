@@ -43,12 +43,41 @@ export const games = catalog.filter((c) => !c.genres.some((x) => SOFT.includes(x
 export const byId = Object.fromEntries(games.map((g) => [g.id, g]))
 export const bySlug = byId
 
+// Jeux hors catalogue (ouverts depuis les vitrines Steam en direct) : chargés à la demande via /api/steam/app.
+const DYN_KEY = 'ga-dyn'
+let dynSaved = {}
+try {
+  dynSaved = JSON.parse(localStorage.getItem(DYN_KEY) || '{}')
+} catch {
+  /* stockage indisponible */
+}
+export const dyn = {}
+const steamMap = new Map() // appid -> jeu possédé sur le compte Steam connecté
+export const lookup = (id) => byId[id] ?? dyn[id]
+
+export function fromApp(c) {
+  const mine = saved.library.includes(c.id)
+  const st = steamMap.get(c.id)
+  return reactive({ ...c, slug: c.id, moods: moodsOf(c), num: priceNum(c.price), local: mine, steam: !!st, owned: mine || !!st, fav: saved.fav.includes(c.id), hours: st ? Math.round(st.minutes / 60) : null, last: st?.last ?? 0, sizeGo: c.size || null })
+}
+Object.entries(dynSaved).forEach(([id, raw]) => {
+  if (!byId[id] && saved.library.includes(id)) dyn[id] = fromApp(raw)
+})
+
+export async function getGame(id) {
+  const known = lookup(id)
+  if (known) return known
+  const r = await fetch('/api/steam/app?id=' + encodeURIComponent(id))
+  if (!r.ok) throw new Error('introuvable')
+  return (dyn[id] = fromApp(await r.json()))
+}
+
 // Ordre d'ajout conservé : la bibliothèque locale est une liste.
-const order = reactive([...saved.library.filter((id) => byId[id])])
+const order = reactive([...saved.library.filter((id) => lookup(id))])
 // Jeux du compte Steam qui ne sont pas dans notre catalogue.
 export const steamExtra = ref([])
 export const myGames = computed(() => [
-  ...order.map((id) => byId[id]),
+  ...order.map((id) => lookup(id)),
   ...games.filter((g) => g.steam && !g.local).sort((a, b) => b.last - a.last),
 ])
 export const libraryAll = computed(() => [...myGames.value, ...steamExtra.value])
@@ -56,7 +85,7 @@ export const storeGames = computed(() => games.filter((g) => !g.owned))
 
 export function saveLibrary() {
   try {
-    localStorage.setItem(KEY, JSON.stringify({ library: [...order], fav: games.filter((g) => g.fav).map((g) => g.id) }))
+    localStorage.setItem(KEY, JSON.stringify({ library: [...order], fav: [...games, ...Object.values(dyn)].filter((g) => g.fav).map((g) => g.id) }))
   } catch {
     /* stockage indisponible */
   }
@@ -66,6 +95,16 @@ export function toggleOwned(g) {
   g.owned = g.local || g.steam
   if (g.local) order.push(g.id)
   else order.splice(order.indexOf(g.id), 1)
+  if (!byId[g.id]) {
+    // Jeu hors catalogue : on garde sa fiche pour pouvoir la réafficher au prochain lancement.
+    if (g.local) dynSaved[g.id] = JSON.parse(JSON.stringify(g))
+    else delete dynSaved[g.id]
+    try {
+      localStorage.setItem(DYN_KEY, JSON.stringify(dynSaved))
+    } catch {
+      /* stockage indisponible */
+    }
+  }
   saveLibrary()
 }
 
@@ -73,7 +112,9 @@ export function toggleOwned(g) {
 export function applySteam(list) {
   const extra = []
   const owned = new Map(list.map((x) => [x.appid, x]))
-  games.forEach((g) => {
+  steamMap.clear()
+  owned.forEach((x, id) => steamMap.set(id, x))
+  ;[...games, ...Object.values(dyn)].forEach((g) => {
     const x = owned.get(g.id)
     g.steam = !!x
     g.hours = x ? Math.round(x.minutes / 60) : null
