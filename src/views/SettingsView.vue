@@ -109,10 +109,17 @@ onBeforeUnmount(() => ctx?.revert())
             <input :id="'d-' + key" type="checkbox" class="nv-sw" :checked="desktop.settings[key]" @change="setSetting({ [key]: $event.target.checked })" />
           </div>
           <div class="flex flex-wrap items-center gap-3 border-t border-white/[0.07] py-4">
+            <template v-if="!desktop.canUpdate">
+              <div class="flex min-w-0 flex-1 flex-col gap-[3px]"><span class="text-[15px] font-semibold">Ancienne version de l’application</span>
+                <span class="text-[13px] text-mute">Cette version est trop ancienne pour se mettre à jour toute seule. Installe la dernière une fois : les suivantes se mettront à jour automatiquement.</span></div>
+              <RouterLink to="/telecharger" class="flex h-11 items-center rounded-full bg-accent px-5 text-sm font-extrabold text-ink no-underline">Télécharger la dernière version</RouterLink>
+            </template>
+            <template v-else>
             <div class="flex min-w-0 flex-1 flex-col gap-[3px]"><span class="text-[15px] font-semibold">Version {{ desktop.version || '—' }}</span>
               <span class="text-[13px] text-mute" aria-live="polite">{{ { idle: 'Les mises à jour sont vérifiées automatiquement.', checking: 'Recherche de mise à jour…', latest: 'Tu as la dernière version.', downloading: `Téléchargement de la version ${desktop.update.version} : ${desktop.update.percent} %`, ready: `La version ${desktop.update.version} est prête à être installée.`, error: 'Mise à jour impossible pour le moment.' }[desktop.update.status] }}</span></div>
             <button v-if="desktop.update.status === 'ready'" type="button" class="h-11 rounded-full bg-accent px-5 text-sm font-extrabold text-ink" @click="installUpdate">Redémarrer et installer</button>
             <button v-else type="button" :disabled="['checking', 'downloading'].includes(desktop.update.status)" class="h-11 rounded-full border border-white/20 bg-transparent px-5 text-sm font-semibold text-white enabled:hover:bg-white/10 disabled:opacity-50" @click="checkUpdate">Rechercher une mise à jour</button>
+            </template>
           </div>
           <button type="button" class="mt-2 h-11 self-start rounded-full border border-white/20 bg-transparent px-5 text-sm font-semibold text-white hover:bg-white/10" @click="notify('G.A Launcher', 'Les notifications du bureau fonctionnent.', '/parametres')">Tester une notification</button>
         </div>
