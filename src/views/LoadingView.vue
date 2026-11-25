@@ -72,7 +72,7 @@ watch(done, async (v) => {
 
     <div class="absolute left-5 top-1/2 flex w-[min(520px,calc(100%-40px))] -translate-y-1/2 flex-col gap-7 md:left-20">
       <h1 data-logo class="m-0 flex overflow-hidden pb-2 leading-[0.85]" aria-label="G.A">
-        <span class="inline-block"><Logo size="clamp(96px, 16vw, 168px)" full /></span>
+        <span class="block w-full max-w-[460px]"><Logo fit full /></span>
       </h1>
       <BlurText tag="p" text="Tous tes jeux. Un seul endroit. On prépare le catalogue." :delay="0.7" class="m-0 text-xl leading-normal text-soft" />
 

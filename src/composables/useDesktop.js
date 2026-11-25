@@ -2,7 +2,7 @@ import { reactive } from 'vue'
 import { toast } from './useToast'
 
 // Pont avec l'application de bureau (Electron). Dans un navigateur normal, `available` vaut false et rien ne change.
-export const desktop = reactive({ available: typeof window !== 'undefined' && !!window.launcher?.isDesktop, steamFound: false, libraries: 0, apps: {}, version: '', update: { status: 'idle', version: null, percent: 0, error: null }, settings: { openAtLogin: false, closeToTray: true, notifications: true } })
+export const desktop = reactive({ available: typeof window !== 'undefined' && !!window.launcher?.isDesktop, steamFound: false, libraries: 0, apps: {}, version: '', update: { status: 'idle', version: null, percent: 0, error: null }, settings: { openAtLogin: false, closeToTray: true, notifications: true }, canUpdate: typeof window !== 'undefined' && !!window.launcher?.update })
 
 export const isInstalled = (id) => !!desktop.apps[id]?.installed
 export const dlState = (id) => desktop.apps[id] ?? null
@@ -41,5 +41,5 @@ export function startDesktop() {
   window.launcher.onState(apply)
 }
 
-export const checkUpdate = () => window.launcher.update.check()
-export const installUpdate = () => window.launcher.update.install()
+export const checkUpdate = () => window.launcher.update?.check()
+export const installUpdate = () => window.launcher.update?.install()
