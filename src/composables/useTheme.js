@@ -5,7 +5,7 @@ import { prefersReduced } from './motion'
 const KEY = 'ga-theme'
 const defaults = {
   accent: '#B6FF3D',
-  wall: 'ashfall',
+  wall: '1245620',
   density: 'Confort',
   startup: true,
   console: true,
@@ -17,7 +17,9 @@ const defaults = {
 
 function load() {
   try {
-    return { ...defaults, ...JSON.parse(localStorage.getItem(KEY) || '{}') }
+    const t = { ...defaults, ...JSON.parse(localStorage.getItem(KEY) || '{}') }
+    if (!/^\d+$/.test(t.wall)) t.wall = defaults.wall // ancien fond fictif
+    return t
   } catch {
     return { ...defaults }
   }

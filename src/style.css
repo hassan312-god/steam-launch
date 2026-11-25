@@ -28,10 +28,24 @@
   --accent: #b6ff3d;
 }
 
+@utility shell {
+  width: 100%;
+  max-width: 1840px;
+  margin-inline: auto;
+  padding-inline: clamp(20px, 3.4vw, 72px);
+}
+
 @layer base {
   html {
+    scrollbar-width: none; /* barre de défilement invisible, le scroll reste actif */
+    -ms-overflow-style: none;
     background: var(--color-ink);
     color-scheme: dark;
+  }
+  html::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
   }
   body {
     margin: 0;

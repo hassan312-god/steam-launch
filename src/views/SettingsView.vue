@@ -4,12 +4,12 @@ import gsap from 'gsap'
 import SplitText from '../components/bits/SplitText.vue'
 import Ring from '../components/bits/Ring.vue'
 import CountUp from '../components/bits/CountUp.vue'
-import { accents, bySlug, walls } from '../data/games'
+import { accents, byId, walls } from '../data/games'
 import { setAccent, theme } from '../composables/useTheme'
 import { prefersReduced } from '../composables/motion'
 
 const densities = ['Compact', 'Confort', 'Géant']
-const wall = computed(() => bySlug[theme.wall].wide)
+const wall = computed(() => byId[theme.wall].wide)
 const toggles = [
   ['startup', 'Lancer G.A au démarrage', 'Directement sur l’écran de chargement'],
   ['console', 'Mode console plein écran', 'Navigation à la manette, comme sur une PS5'],
@@ -40,7 +40,7 @@ onBeforeUnmount(() => ctx?.revert())
 
 <template>
   <div ref="root" class="relative min-h-screen overflow-hidden bg-ink pt-[var(--header-h,100px)]">
-    <main class="relative flex flex-col gap-6 px-5 pb-14 pt-2 md:px-12">
+    <main class="relative flex flex-col gap-6 shell pb-14 pt-2">
       <section data-banner class="relative flex min-h-[260px] items-end overflow-hidden rounded-[28px]" aria-label="Profil">
         <div class="absolute inset-0 overflow-hidden">
           <Transition :css="false" @enter="wallEnter" @leave="wallLeave">
@@ -96,7 +96,7 @@ onBeforeUnmount(() => ctx?.revert())
                 class="h-[76px] overflow-hidden rounded-[14px] border-0 bg-avatar p-0 transition-all duration-300 hover:scale-105"
                 :class="theme.wall === slug ? 'shadow-[0_0_0_3px_var(--accent)]' : ''"
                 @click="theme.wall = slug"
-              ><img :src="bySlug[slug].wide" alt="" class="block size-full object-cover" /></button>
+              ><img :src="byId[slug].wide" alt="" class="block size-full object-cover" /></button>
             </div>
           </div>
           <div class="flex flex-col gap-3">

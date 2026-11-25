@@ -17,7 +17,7 @@ const SEGMENTS = 10
 const FILLED = 7
 
 // Mur de jaquettes : 6 colonnes dont le contenu est doublé pour une boucle sans couture.
-const covers = games.map((g) => g.cover)
+const covers = games.slice(0, 24).map((g) => g.cover)
 const cols = Array.from({ length: 6 }, (_, c) => {
   const half = Array.from({ length: 6 }, (_, r) => covers[(c * 3 + r * 7) % covers.length])
   return half.concat(half)
@@ -55,7 +55,7 @@ watch(done, async (v) => {
     <div data-wall aria-hidden="true" class="absolute inset-0" style="perspective: 1400px">
       <div class="absolute -top-[40%] left-[34%] flex h-[2000px] w-[1300px] gap-[22px]" style="transform: rotateX(28deg) rotateY(-22deg) rotateZ(14deg); transform-style: preserve-3d">
         <div v-for="(col, i) in cols" :key="i" data-col class="flex flex-1 flex-col gap-[22px] will-change-transform">
-          <img v-for="(src, j) in col" :key="j" :src="src" alt="" class="block aspect-[3/4] w-full rounded-2xl object-cover shadow-[0_30px_60px_rgba(0,0,0,0.55)]" />
+          <img v-for="(src, j) in col" :key="j" :src="src" alt="" class="block aspect-[2/3] w-full rounded-2xl object-cover shadow-[0_30px_60px_rgba(0,0,0,0.55)]" />
         </div>
       </div>
     </div>
