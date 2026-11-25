@@ -18,15 +18,34 @@ const open = ref({})
 const list = ref(null)
 let ctrl
 
+const cursor = () => encodeURIComponent(cursors.value[page.value - 1])
+
+// 1) fonction serveur ; 2) à défaut, appel direct de l'API officielle depuis le navigateur du visiteur.
+async function fetchPage(signal) {
+  try {
+    const r = await fetch(`/api/reviews?appid=${props.appid}&lang=${lang.value}&cursor=${cursor()}`, { signal })
+    const d = await r.json()
+    if (r.ok) return d
+  } catch (e) {
+    if (e.name === 'AbortError') throw e
+  }
+  const r = await fetch(`https://store.steampowered.com/appreviews/${props.appid}?json=1&filter=all&review_type=all&purchase_type=all&num_per_page=10&language=${lang.value}&cursor=${cursor()}`, { signal })
+  const d = await r.json()
+  if (d.success !== 1) throw new Error('Avis Steam indisponibles pour le moment.')
+  return {
+    summary: d.query_summary,
+    cursor: d.cursor,
+    reviews: d.reviews.map((x) => ({ id: x.recommendationid, recommended: x.voted_up, hours: Math.round((x.author?.playtime_forever || 0) / 60), created: x.timestamp_created, votes: x.votes_up, text: x.review })),
+  }
+}
+
 async function load() {
   ctrl?.abort()
   ctrl = new AbortController()
   loading.value = true
   error.value = ''
   try {
-    const r = await fetch(`/api/reviews?appid=${props.appid}&lang=${lang.value}&cursor=${encodeURIComponent(cursors.value[page.value - 1])}`, { signal: ctrl.signal })
-    const d = await r.json()
-    if (!r.ok) throw new Error(d.error || 'Erreur')
+    const d = await fetchPage(ctrl.signal)
     // Aucun avis dans la langue : on bascule sur toutes les langues.
     if (!d.reviews.length && page.value === 1 && lang.value !== 'all') {
       lang.value = 'all'
@@ -41,7 +60,7 @@ async function load() {
     if (!prefersReduced()) gsap.fromTo(list.value?.children ?? [], { opacity: 0, y: 24 }, { opacity: 1, y: 0, stagger: 0.06, duration: 0.5, ease: 'power3.out' })
   } catch (e) {
     if (e.name === 'AbortError') return
-    error.value = e.message || 'Avis indisponibles pour le moment.'
+    error.value = 'Les avis Steam sont indisponibles pour le moment.'
     loading.value = false
   }
 }
