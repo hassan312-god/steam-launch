@@ -66,3 +66,113 @@ export async function normalizeApp(d, id = d.steam_appid) {
     size: Number((strip(d.pc_requirements?.minimum || '').match(/(?:Espace disque|Stockage|Storage|Hard Drive)[^0-9]*(\d+)\s*(?:GB|Go)/i) || [])[1]) || null,
   }
 }
+
+// ---------------------------------------------------------------------------------------------------
+// Fiche complète (style page Steam) : description longue, éditions, DLC, langues, annonces, évaluations…
+// Tout est converti en texte brut / données structurées : aucun HTML venant de Steam n'est injecté dans la page.
+const money = (cents, cur = 'EUR') => (cents / 100).toLocaleString('fr-FR', { style: 'currency', currency: cur })
+
+// HTML Steam -> blocs { t: 'h' | 'p' | 'li', text }
+export function htmlToBlocks(html = '') {
+  const out = []
+  const clean = (x) => strip(x.replace(/<br\s*\/?>/gi, ' ')).replace(/\s+/g, ' ').trim()
+  const re = /<(h[1-6]|li|p)[^>]*>(.*?)<\/\1>|<br\s*\/?>/gis
+  let last = 0
+  const pushLoose = (chunk) => {
+    for (const part of chunk.split(/<br\s*\/?>/i)) {
+      const t = clean(part)
+      if (t) out.push({ t: 'p', text: t })
+    }
+  }
+  for (const m of html.matchAll(/<(h[1-6]|li)[^>]*>(.*?)<\/\1>/gis)) {
+    pushLoose(html.slice(last, m.index).replace(/<\/?(ul|ol|p|div|span|strong|em|b|i|a)[^>]*>/gi, ' '))
+    const t = clean(m[2])
+    if (t) out.push({ t: m[1].toLowerCase() === 'li' ? 'li' : 'h', text: t })
+    last = m.index + m[0].length
+  }
+  pushLoose(html.slice(last).replace(/<\/?(ul|ol|p|div|span|strong|em|b|i|a)[^>]*>/gi, ' '))
+  return out.slice(0, 60)
+}
+
+// "Tchèque, Anglais<strong>*</strong>, Français" -> [{ name, audio }]
+export function parseLanguages(html = '') {
+  const body = html.split(/<br\s*\/?>/i)[0]
+  return body
+    .split(',')
+    .map((x) => ({ name: strip(x).replace(/\*/g, '').trim(), audio: /<strong>\*<\/strong>/.test(x) }))
+    .filter((x) => x.name)
+}
+
+const REVIEW_LABEL = (pct, n) => {
+  if (n === 0) return ''
+  if (pct >= 95 && n >= 500) return 'Extrêmement positives'
+  if (pct >= 80 && n >= 50) return 'Très positives'
+  if (pct >= 80) return 'Positives'
+  if (pct >= 70) return 'Plutôt positives'
+  if (pct >= 40) return 'Mitigées'
+  if (pct >= 20) return 'Plutôt négatives'
+  return n >= 500 ? 'Extrêmement négatives' : 'Très négatives'
+}
+
+async function getJson(url) {
+  const r = await fetch(url)
+  if (!r.ok) throw new Error(String(r.status))
+  return r.json()
+}
+
+export async function normalizeFull(d, id) {
+  id = String(id)
+  const [dlc, news, hist] = await Promise.all([
+    Promise.allSettled((d.dlc || []).slice(0, 8).map((x) => fetchApp(x))),
+    getJson(`https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=${id}&count=4&maxlength=280&format=json`).catch(() => null),
+    getJson(`https://store.steampowered.com/appreviewhistogram/${id}?l=french`).catch(() => null),
+  ])
+
+  // Éditions et prix d'achat (les « options » de la page Steam).
+  const packages = (d.package_groups || []).flatMap((g) => g.subs || []).map((s) => ({
+    id: String(s.packageid),
+    title: strip(s.option_text || '').replace(/\s+-\s+[\d\s,.]+\s?€.*$/, '').replace(/\s+-\s+Gratuit.*$/i, ''),
+    free: !s.price_in_cents_with_discount,
+    price: s.price_in_cents_with_discount ? money(s.price_in_cents_with_discount) : 'Gratuit',
+    discount: Number(s.percent_savings) || 0,
+  }))
+
+  // Évaluations : somme de l'historique mensuel (toutes langues).
+  let reviews = null
+  const roll = hist?.results?.rollups
+  if (roll?.length) {
+    const up = roll.reduce((n, r) => n + r.recommendations_up, 0)
+    const down = roll.reduce((n, r) => n + r.recommendations_down, 0)
+    const total = up + down
+    const pct = total ? Math.round((up / total) * 100) : 0
+    reviews = { up, down, total, percent: pct, label: REVIEW_LABEL(pct, total) }
+  }
+
+  return {
+    about: htmlToBlocks(d.about_the_game || d.detailed_description || ''),
+    languages: parseLanguages(d.supported_languages),
+    platforms: { windows: !!d.platforms?.windows, mac: !!d.platforms?.mac, linux: !!d.platforms?.linux },
+    publisher: (d.publishers || []).filter(Boolean).join(', '),
+    developers: (d.developers || []).filter(Boolean).join(', '),
+    website: /^https?:\/\//.test(d.website || '') ? d.website : '',
+    controller: d.controller_support === 'full' ? 'Manette : compatibilité complète' : d.controller_support === 'partial' ? 'Manette : compatibilité partielle' : '',
+    age: Number(d.required_age) || 0,
+    contentNotes: strip(d.content_descriptors?.notes || ''),
+    features: [...new Set((d.categories || []).map((c) => c.description))],
+    packages,
+    dlc: dlc
+      .filter((x) => x.status === 'fulfilled' && x.value)
+      .map((x) => x.value)
+      .map((x) => ({ id: String(x.steam_appid), title: x.name, header: (x.header_image || '').split('?')[0], price: x.is_free ? 'Gratuit' : x.price_overview?.final_formatted || '', discount: x.price_overview?.discount_percent || 0 })),
+    dlcTotal: (d.dlc || []).length,
+    news: (news?.appnews?.newsitems || []).map((n) => ({
+      id: String(n.gid),
+      title: n.title,
+      date: n.date * 1000,
+      label: n.feedlabel,
+      url: /^https?:\/\//.test(n.url || '') ? n.url : '',
+      text: strip((n.contents || '').replace(/\[[^\]]*\]/g, ' ').replace(/\{[A-Z_]+\}\S*/g, ' ').replace(/[\\*#]+/g, ' ')).slice(0, 240),
+    })),
+    reviews,
+  }
+}
