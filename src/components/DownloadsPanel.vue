@@ -5,6 +5,14 @@ import gsap from 'gsap'
 import { desktop } from '../composables/useDesktop'
 import { prefersReduced } from '../composables/motion'
 import { install } from '../composables/useLaunch'
+const base = (id) => `https://cdn.cloudflare.steamstatic.com/steam/apps/${id}/`
+const art = (id) => base(id) + 'library_600x900.jpg'
+// Jaquette absente (jeu récent) : on essaie l'en-tête du jeu, sinon la lettre du jeu reste affichée.
+function onErr(e, id) {
+  const img = e.target
+  if (!img.dataset.tried) { img.dataset.tried = '1'; img.src = base(id) + 'header.jpg' }
+  else img.remove()
+}
 const pause = () => window.launcher?.openDownloads?.()
 
 const props = defineProps({ open: Boolean, list: { type: Array, required: true } })
@@ -25,7 +33,10 @@ watch(() => props.open, async (o) => {
     <ul v-else class="m-0 flex list-none flex-col p-2">
       <li v-for="a in list" :key="a.appid" class="flex items-center gap-3 rounded-2xl p-3 hover:bg-white/5">
         <RouterLink :to="'/jeu/' + a.appid" class="shrink-0" :aria-label="a.name" @click="emit('close')">
-          <img :src="`https://cdn.cloudflare.steamstatic.com/steam/apps/${a.appid}/library_600x900.jpg`" alt="" loading="lazy" class="block h-[72px] w-[48px] rounded-lg bg-ink object-cover" />
+          <span class="relative flex h-[72px] w-[48px] items-center justify-center overflow-hidden rounded-lg bg-panel-2 font-display text-lg font-black text-accent">
+            {{ (a.name || '?').charAt(0).toUpperCase() }}
+            <img :src="art(a.appid)" alt="" loading="lazy" class="absolute inset-0 size-full object-cover" @error="onErr($event, a.appid)" />
+          </span>
         </RouterLink>
         <div class="flex min-w-0 flex-1 flex-col gap-1.5">
           <RouterLink :to="'/jeu/' + a.appid" class="truncate text-[15px] font-bold leading-tight text-white no-underline" @click="emit('close')">{{ a.name }}</RouterLink>
