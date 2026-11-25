@@ -16,6 +16,7 @@ export async function setSetting(patch) {
   desktop.settings = await window.launcher.setSettings(patch)
 }
 
+const snap = {} // dernier relevé par jeu, pour calculer la vitesse réelle
 let started = false
 export function startDesktop() {
   if (!desktop.available || started) return
@@ -28,6 +29,19 @@ export function startDesktop() {
         toast(`${a.name} est installé`)
         notify('Installation terminée', `${a.name} est prêt à jouer.`, '/jeu/' + a.appid)
       }
+    }
+    const t = Date.now()
+    for (const a of Object.values(s.apps)) {
+      const prev = snap[a.appid]
+      let speed = 0
+      if (a.downloading && prev && t > prev.t) {
+        const inst = Math.max(0, (a.bytesDownloaded - prev.b) / ((t - prev.t) / 1000))
+        speed = prev.speed * 0.6 + inst * 0.4 // lissage : la vitesse ne saute pas à chaque relevé
+        if (speed < 1024) speed = 0
+      }
+      a.speed = speed
+      a.eta = speed > 0 && a.bytesToDownload > a.bytesDownloaded ? (a.bytesToDownload - a.bytesDownloaded) / speed : null
+      snap[a.appid] = { t, b: a.bytesDownloaded, speed }
     }
     desktop.steamFound = s.steamFound
     desktop.libraries = s.libraries.length
@@ -43,3 +57,17 @@ export function startDesktop() {
 
 export const checkUpdate = () => window.launcher.update?.check()
 export const installUpdate = () => window.launcher.update?.install()
+
+const U = ['o', 'Ko', 'Mo', 'Go', 'To']
+export function fmtBytes(n = 0) {
+  let i = 0
+  while (n >= 1024 && i < U.length - 1) (n /= 1024), i++
+  return (n >= 100 || i === 0 ? Math.round(n) : n.toFixed(1)).toString().replace('.', ',') + ' ' + U[i]
+}
+export const fmtSpeed = (n) => (n > 0 ? fmtBytes(n) + '/s' : '—')
+export function fmtEta(sec) {
+  if (sec == null || !isFinite(sec)) return '—'
+  if (sec < 60) return 'moins d’une minute'
+  const m = Math.round(sec / 60)
+  return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`
+}

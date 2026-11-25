@@ -8,6 +8,7 @@ const routes = [
   { path: '/magasin', name: 'store', component: () => import('./views/StoreView.vue'), meta: { title: 'Magasin' } },
   { path: '/catalogue', name: 'catalog', component: () => import('./views/CatalogView.vue'), meta: { title: 'Catalogue' } },
   { path: '/bibliotheque', name: 'library', component: () => import('./views/LibraryView.vue'), meta: { title: 'Bibliothèque' } },
+  { path: '/telechargements', name: 'downloads', component: () => import('./views/DownloadsView.vue'), meta: { title: 'Téléchargements' } },
   { path: '/telecharger', name: 'download', component: () => import('./views/DownloadView.vue'), meta: { title: 'Télécharger' } },
   { path: '/parametres', name: 'settings', component: () => import('./views/SettingsView.vue'), meta: { title: 'Paramètres' } },
   { path: '/:pathMatch(.*)*', redirect: '/' },
