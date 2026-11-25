@@ -79,6 +79,8 @@ onBeforeUnmount(() => {
   io?.disconnect()
   ctrl?.abort()
 })
+// Choisir un filtre dans « Les plus joués » bascule sur tout le catalogue, filtré.
+watch([tag, price, adult], () => { if (mode.value === 'popular' && (tag.value || price.value || adult.value)) mode.value = 'all' })
 watch([mode, tag, price, adult], () => load(true))
 
 function enter(el, done) {
@@ -110,7 +112,7 @@ const list = computed(() => (showSearch.value ? found.value : items.value))
           <button type="button" :aria-pressed="mode === 'popular'" class="h-11 rounded-full border px-5 text-sm font-bold transition-colors" :class="mode === 'popular' ? 'border-accent bg-accent text-ink' : 'border-white/[0.14] bg-panel/80 text-white hover:border-white/40'" @click="mode = 'popular'">Les plus joués en ce moment</button>
           <button type="button" :aria-pressed="mode === 'all'" class="h-11 rounded-full border px-5 text-sm font-bold transition-colors" :class="mode === 'all' ? 'border-accent bg-accent text-ink' : 'border-white/[0.14] bg-panel/80 text-white hover:border-white/40'" @click="mode = 'all'">Tous les jeux</button>
         </div>
-        <template v-if="mode === 'all'">
+        <template v-if="true">
           <div class="no-scrollbar flex gap-2 overflow-x-auto py-1" role="group" aria-label="Genre">
             <button type="button" :aria-pressed="tag === null" class="h-10 shrink-0 rounded-full border px-4 text-sm font-semibold transition-colors" :class="tag === null ? 'border-white bg-white text-ink' : 'border-white/[0.14] bg-panel/80 text-white hover:border-white/40'" @click="tag = null">Tous les genres</button>
             <button v-for="[label, id] in TAGS" :key="id" type="button" :aria-pressed="tag === id" class="h-10 shrink-0 rounded-full border px-4 text-sm font-semibold transition-colors" :class="tag === id ? 'border-white bg-white text-ink' : 'border-white/[0.14] bg-panel/80 text-white hover:border-white/40'" @click="tag = tag === id ? null : id">{{ label }}</button>

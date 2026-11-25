@@ -23,6 +23,8 @@ const fallback = () => [
   { id: 'new_releases', title: 'Nouveautés', sub: 'Les dernières sorties', items: catNew.map(toItem) },
 ].filter((x) => x.items.length)
 const sections = ref([])
+const opened = ref(new Set())
+const toggle = (id) => { const n = new Set(opened.value); n.has(id) ? n.delete(id) : n.add(id); opened.value = n }
 const live = ref(false)
 fetch('/api/steam/store')
   .then((r) => (r.ok ? r.json() : Promise.reject()))
@@ -246,9 +248,9 @@ watch(hero, async () => {
       <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-bold tracking-[0.1em]" :class="live ? 'text-accent' : 'text-mute'">{{ live ? 'EN DIRECT' : 'HORS LIGNE' }}</span>
     </div>
     <section v-for="s in sections" :key="s.id" v-reveal class="flex flex-col gap-4" :aria-labelledby="'h-' + s.id">
-      <div class="flex items-baseline justify-between gap-4"><h3 :id="'h-' + s.id" class="m-0 font-display text-[22px] font-extrabold tracking-[-0.01em]">{{ s.title }}</h3><span class="text-sm text-mute">{{ s.sub }}</span></div>
-      <div class="no-scrollbar flex gap-[18px] overflow-x-auto px-1 py-3">
-        <RouterLink v-for="i in s.items" :key="i.id" :to="'/jeu/' + i.id" class="group flex w-[180px] shrink-0 flex-col gap-3 text-white no-underline 2xl:w-[220px]">
+      <div class="flex items-baseline justify-between gap-4"><h3 :id="'h-' + s.id" class="m-0 font-display text-[22px] font-extrabold tracking-[-0.01em]">{{ s.title }}</h3><span class="flex items-center gap-4"><span class="hidden text-sm text-mute sm:inline">{{ s.sub }}</span><button type="button" :aria-expanded="opened.has(s.id)" class="h-9 rounded-full border border-white/[0.18] bg-transparent px-4 text-[13px] font-bold text-white hover:bg-white/10" @click="toggle(s.id)">{{ opened.has(s.id) ? 'Réduire' : 'Voir plus' }}</button></span></div>
+      <div :class="opened.has(s.id) ? 'grid grid-cols-2 gap-5 px-1 py-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6' : 'no-scrollbar flex gap-[18px] overflow-x-auto px-1 py-3'">
+        <RouterLink v-for="i in s.items" :key="i.id" :to="'/jeu/' + i.id" class="group flex shrink-0 flex-col gap-3 text-white no-underline" :class="opened.has(s.id) ? '' : 'w-[180px] 2xl:w-[220px]'">
           <div class="relative aspect-[2/3] overflow-hidden rounded-[22px] bg-panel shadow-[0_18px_40px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:-translate-y-1.5">
             <img :src="i.cover" alt="" loading="lazy" class="block size-full object-cover transition-transform duration-700 group-hover:scale-110" @error="$event.target.src = i.header" />
             <span v-if="i.discount" class="absolute left-2.5 top-2.5 rounded-full bg-hot px-[9px] py-[5px] text-[11px] font-extrabold text-ink">-{{ i.discount }} %</span>
